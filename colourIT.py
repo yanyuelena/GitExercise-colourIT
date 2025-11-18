@@ -1,12 +1,15 @@
 import pygame
 
-WIDTH, HEIGHT = 900, 600
-WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
+#windows setup 
+WIDTH, HEIGHT = 900, 600 
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT)) #
 pygame.display.set_caption("Colour IT!")
 
+#colours constants
 WHITE = (255, 255, 255)
 
 FPS = 15
+
 
 def draw_window():
     WINDOW.fill(WHITE)
@@ -24,6 +27,14 @@ def main():
         draw_window()
 
     pygame.quit()
+
+#javia 
+def update_world():
+
+
+#lydia 
+def update_mobs():
+
 
 if __name__ == "__main__":
     main()
