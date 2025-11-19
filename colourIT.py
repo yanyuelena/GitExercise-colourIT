@@ -2,7 +2,7 @@ import pygame
 
 #windows setup 
 WIDTH, HEIGHT = 900, 600 
-WINDOW = pygame.display.set_mode((WIDTH, HEIGHT)) #
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT)) 
 pygame.display.set_caption("Colour IT!")
 
 #colours constants
