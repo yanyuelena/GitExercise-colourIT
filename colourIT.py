@@ -153,8 +153,8 @@ BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 600, 100, 50
 BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
 TITLE_Y = 50
 START_Y = 200
-OPTION_Y = START_Y + BUTTON_HEIGHT + BUTTON_SPACING
-QUIT_Y = OPTION_Y + BUTTON_HEIGHT + BUTTON_SPACING
+SETTINGS_Y = START_Y + BUTTON_HEIGHT + BUTTON_SPACING
+QUIT_Y = SETTINGS_Y + BUTTON_HEIGHT + BUTTON_SPACING
 
 
 #colours constants
@@ -192,8 +192,7 @@ def main():
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
 
-    game_active = False #added to make START work
-    #pygame.display.update() (redundant line?)
+    page = 0
 
     run = True
     while run: 
@@ -201,33 +200,43 @@ def main():
         mouse_pos = pygame.mouse.get_pos()
         draw_window()
 
-        if not game_active: #added to make buttons work
+        
+        
+        if page == 0: #added to make buttons work
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
             START_BUTTON = draw_button("START GAME!", BUTTON_X, START_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            OPTION_BUTTON = draw_button("Options", BUTTON_X, OPTION_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, QUIT_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
-        else:
-        #Input/Movement & update player position
+        elif page == 1: #Input/Movement & update player position
             handle_move(player)
             player.loop(FPS)
             draw_player(player)
-        
+
+        elif page == 2:
+            settings_title = TITLE_FONT.render("Settings", 1, BLACK)
+            WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
+
         pygame.display.update()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if START_BUTTON.collidepoint(mouse_pos) and not game_active: #this line closes the window so i modify :P
-                    #return "start!"
-                    game_active = True
-                if OPTION_BUTTON.collidepoint(mouse_pos):
-                    return "options!"
+                if START_BUTTON.collidepoint(mouse_pos):
+                    page = 1
+                if SETTINGS_BUTTON.collidepoint(mouse_pos):
+                    page = 2
                 if QUIT_BUTTON.collidepoint(mouse_pos):
-                    return "quit!"
+                    run = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if page == 1 or page == 2:
+                        page = 0
+                    elif page == 0:
+                        run = False
 
 
     pygame.quit() #return "quit" closes the window so i chg :P
