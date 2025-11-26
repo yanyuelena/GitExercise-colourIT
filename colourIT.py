@@ -198,7 +198,7 @@ def main():
         global WINDOW
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
-        WINDOW.fill(GREY)
+        WINDOW.fill(WHITE)
 
         
         if page == 0: #added to make buttons work
