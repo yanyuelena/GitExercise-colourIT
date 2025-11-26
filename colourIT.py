@@ -9,9 +9,9 @@ pygame.font.init()
 
 #windows setup 
 WIDTH, HEIGHT = 1280, 720 
-WINDOW = pygame.display.set_mode((WIDTH, HEIGHT)) 
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE) 
 
-FPS = 15
+FPS = 24
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 5
@@ -149,12 +149,13 @@ def draw_player(player):
 TITLE_FONT = pygame.font.SysFont("comicsans", 80)
 BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
 # buttons dimensions
-BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 600, 100, 50
+BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 600, 80, 30
 # buttons positions
 BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
 TITLE_Y = 50
-START_Y = 200
-SETTINGS_Y = START_Y + BUTTON_HEIGHT + BUTTON_SPACING
+NEW_GAME_BUTTON_Y = 200
+LOAD_GAME_BUTTON_Y = NEW_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
+SETTINGS_Y = LOAD_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 QUIT_Y = SETTINGS_Y + BUTTON_HEIGHT + BUTTON_SPACING
 
 
@@ -163,9 +164,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
 LIGHT_GREY = (200, 200, 200)
-
-def draw_window():
-    WINDOW.fill(WHITE)
+PURPLE = (150, 0, 200)
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -197,17 +196,18 @@ def main():
 
     run = True
     while run: 
+        global WINDOW
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
-        draw_window()
+        WINDOW.fill(WHITE)
 
-        
         
         if page == 0: #added to make buttons work
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
-            START_BUTTON = draw_button("START GAME!", BUTTON_X, START_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, NEW_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            LOAD_GAME_BUTTON = draw_button("Load Game", BUTTON_X, LOAD_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, QUIT_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
@@ -217,6 +217,10 @@ def main():
             draw_player(player)
 
         elif page == 2:
+            load_title = TITLE_FONT.render("Load Game", 1, BLACK)
+            WINDOW.blit(load_title, ((WIDTH//2 - load_title.get_width()//2, TITLE_Y)))
+
+        elif page == 3:
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
 
@@ -226,18 +230,22 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if START_BUTTON.collidepoint(mouse_pos):
+                if NEW_GAME_BUTTON.collidepoint(mouse_pos):
                     page = 1
-                if SETTINGS_BUTTON.collidepoint(mouse_pos):
+                if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                     page = 2
+                if SETTINGS_BUTTON.collidepoint(mouse_pos):
+                    page = 3
                 if QUIT_BUTTON.collidepoint(mouse_pos):
                     run = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if page == 1 or page == 2:
+                    if page == 1 or page == 2 or page == 3:
                         page = 0
                     elif page == 0:
                         run = False
+                if event.key == pygame.K_F11:
+                    WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 
     pygame.quit() #return "quit" closes the window so i chg :P
