@@ -1,7 +1,4 @@
-import pygame
-import random
-import math
-import csv
+import pygame, random, math, csv, json, os
 from os import listdir
 from os.path import isfile, join
 
@@ -13,6 +10,8 @@ WIDTH, HEIGHT = 1280, 720
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE) 
 
 FPS = 24
+
+MUSIC_ON = True
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 5
@@ -149,8 +148,12 @@ def draw_player(player):
 # fonts for main menu's text 
 TITLE_FONT = pygame.font.SysFont("comicsans", 80)
 BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
+
 # buttons dimensions
 BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 600, 80, 30
+PAUSE_BUTTON_SIDE = 50
+PAUSE_BUTTON_MARGIN = 20
+
 # buttons positions
 BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
 TITLE_Y = 50
@@ -159,6 +162,7 @@ LOAD_GAME_BUTTON_Y = NEW_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 SETTINGS_Y = LOAD_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 QUIT_Y = SETTINGS_Y + BUTTON_HEIGHT + BUTTON_SPACING
 
+BGM_BUTTON_Y = 200
 
 #colours constants
 WHITE = (255, 255, 255)
@@ -166,6 +170,10 @@ BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
 LIGHT_GREY = (200, 200, 200)
 PURPLE = (150, 0, 200)
+RED = (255, 0, 0)
+ORANGE = (255, 165, 0)
+
+
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -187,6 +195,37 @@ def draw_button(text, x, y, width, height, mouse_pos):
 
     return button
 
+def draw_pause_button(mouse_pos):
+    button_x = WIDTH - PAUSE_BUTTON_SIDE - PAUSE_BUTTON_MARGIN
+    button_y = PAUSE_BUTTON_MARGIN
+    button = pygame.Rect(button_x, button_y, PAUSE_BUTTON_SIDE, PAUSE_BUTTON_SIDE)
+    if button.collidepoint(mouse_pos):
+        pygame.draw.rect(WINDOW, RED, button)
+    else:
+        pygame.draw.rect(WINDOW, ORANGE, button)
+
+    return button
+
+def save_game(player):
+    save_data = {
+        "player_x": player.rect.x,
+        "player_y": player.rect.y,
+    }
+    file = open('savegame.json', 'w')
+    json.dump(save_data, file)
+    file.close()
+    print("Game Saved!")
+
+def load_game(player): 
+    file = open('savegame.json', 'r')
+    save_data = json.load(file)
+    file.close()
+    player.rect.x = save_data["player_x"]
+    player.rect.y = save_data["player_y"]
+    print("Game Loaded!")
+
+def if_save_exists():
+    return os.path.exists('savegame.json')
 
 def main():
     player = Player(100, 100, 50, 50)
@@ -194,18 +233,19 @@ def main():
     clock = pygame.time.Clock()
 
     page = 0
+    pause = False
 
     pygame.mixer.music.load('assets/Sounds/background_music.wav')
     pygame.mixer.music.play(-1)
 
     run = True
     while run: 
-        global WINDOW
+        global WINDOW, MUSIC_ON
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
 
         
-        if page == 0: #added to make buttons work
+        if page == 0: #main menu page 
             WINDOW.fill(GREY)
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
@@ -215,48 +255,89 @@ def main():
             SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, QUIT_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
-        elif page == 1: #Input/Movement & update player position
-            WINDOW.fill(WHITE)
-            handle_move(player)
-            player.loop(FPS)
-            draw_player(player)
+        elif page == 1: #new game page 
+            if pause == False:
+                WINDOW.fill(WHITE)
+                handle_move(player)
+                player.loop(FPS)
+                draw_player(player)
+                PAUSE_BUTTON = draw_pause_button(mouse_pos)
+            elif pause == True:
+                WINDOW.fill(WHITE)
+                draw_player(player)
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                overlay.set_alpha(128)
+                WINDOW.blit(overlay, (0, 0))
 
-        elif page == 2:
+                pause_text = TITLE_FONT .render("Paused!", 1, BLACK)
+                WINDOW.blit(pause_text, ((WIDTH//2 - pause_text.get_width()//2, TITLE_Y)))
+
+                RESUME_BUTTON = draw_button("Resume", BUTTON_X, NEW_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, LOAD_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+
+
+        elif page == 2: #load game page 
             WINDOW.fill(WHITE)
             load_title = TITLE_FONT.render("Load Game", 1, BLACK)
             WINDOW.blit(load_title, ((WIDTH//2 - load_title.get_width()//2, TITLE_Y)))
 
-        elif page == 3:
+        elif page == 3: #settings page 
             WINDOW.fill(WHITE)
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
+        
 
         pygame.display.update()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if NEW_GAME_BUTTON.collidepoint(mouse_pos):
-                    page = 1
-                if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
-                    page = 2
-                if SETTINGS_BUTTON.collidepoint(mouse_pos):
-                    page = 3
-                if QUIT_BUTTON.collidepoint(mouse_pos):
-                    run = False
+                if page == 0:
+                    if NEW_GAME_BUTTON.collidepoint(mouse_pos):
+                        page = 1
+                        pause = False
+                    if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
+                        if if_save_exists():
+                            load_game(player)
+                            page = 1
+                            pause = False
+                        else: 
+                            print("No save file found!")
+                    if SETTINGS_BUTTON.collidepoint(mouse_pos):
+                        page = 3
+                    if QUIT_BUTTON.collidepoint(mouse_pos):
+                        run = False
+
+                elif page == 1:
+                    if pause == False:
+                        if PAUSE_BUTTON.collidepoint(mouse_pos):
+                            pause = True
+                    elif pause == True:
+                        if RESUME_BUTTON.collidepoint(mouse_pos):
+                            pause = False
+                        if MENU_BUTTON.collidepoint(mouse_pos):
+                            page = 0
+                        if SAVE_BUTTON.collidepoint(mouse_pos):
+                            save_game(player)
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if page == 1 or page == 2 or page == 3:
+                    if page == 1:
+                        pause = not pause
+                    elif page == 2 or page == 3:
                         page = 0
                     elif page == 0:
                         run = False
+                    
                 if event.key == pygame.K_F11:
                     WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 
-    pygame.quit() #return "quit" closes the window so i chg :P
-
+    pygame.quit() 
 
 
 
