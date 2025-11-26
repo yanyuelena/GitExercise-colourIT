@@ -5,6 +5,7 @@ from os import listdir
 from os.path import isfile, join
 
 pygame.font.init()
+pygame.mixer.init()
 
 #windows setup 
 WIDTH, HEIGHT = 1280, 720 
@@ -193,15 +194,18 @@ def main():
 
     page = 0
 
+    pygame.mixer.music.load('assets/Sounds/background_music.wav')
+    pygame.mixer.music.play(-1)
+
     run = True
     while run: 
         global WINDOW
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
-        WINDOW.fill(WHITE)
 
         
         if page == 0: #added to make buttons work
+            WINDOW.fill(GREY)
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
@@ -211,15 +215,18 @@ def main():
             QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, QUIT_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
         elif page == 1: #Input/Movement & update player position
+            WINDOW.fill(WHITE)
             handle_move(player)
             player.loop(FPS)
             draw_player(player)
 
         elif page == 2:
+            WINDOW.fill(WHITE)
             load_title = TITLE_FONT.render("Load Game", 1, BLACK)
             WINDOW.blit(load_title, ((WIDTH//2 - load_title.get_width()//2, TITLE_Y)))
 
         elif page == 3:
+            WINDOW.fill(WHITE)
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
 
