@@ -145,6 +145,69 @@ def draw_player(player):
 
 #END OF MAIN CHARACTER/PLAYER SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
+
+#MAP SETTING TEST (WILL CHANGE MAP AFTERWARDS) --------------------------------------------------------------------------
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, image, x, y, spritesheet, scale = 1):
+        pygame.sprite.Sprite.__init__(self)
+        original_image = spritesheet.parse_sprite(image)
+        self.image = pygame.transform.scale(original_image, 
+                                           (int(original_image.get_width() * scale), 
+                                            int(original_image.get_height() * scale)))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+    
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+        
+class TileMap():
+    def __init__(self, test_level, spritesheet, scale = 1):
+        self.tile_size = 16 * scale
+        self.scale = scale
+        self.start_x, self.start_y = 0, 0
+        self.spritesheet = spritesheet
+        self.map_w, self.map_h = 0, 0
+        self.tiles = self.load_tiles(test_level)
+        self.map_surface = pygame.Surface((self.map_w, self.map_h))
+        self.map_surface.set_colorkey((0, 0, 0))
+        self.load_map()
+        
+    def draw_map(self, surface):
+        surface.blit(self.map_surface, (0, 0))
+        
+    def load_map(self):
+        for tile in self.tiles:
+            tile.draw(self.map_surface)
+    
+    def read_csv(self, test_level):
+        map = []
+        with open(os.path.join(test_level)) as data:
+            data = csv.reader(data, delimiter=',')
+            for row in data: map.append(list(row))
+            return map
+    
+    def load_tiles(self, test_level):
+        tiles = []
+        map = self.read_csv(test_level)
+        x, y = 0, 0
+        for row in map:
+            x = 0
+            for tile in row:
+                if tile == '-1':
+                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
+                elif tile == '0':
+                    tiles.append(Tile('green.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '1':
+                    tiles.append(Tile('blue.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '2':
+                    tiles.append(Tile('brown.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                x += 1
+            y += 1
+        
+        self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
+        return tiles 
+#MAP SETTING TEST END ---------------------------------------------------------------------------------------------------
+
 # fonts for main menu's text 
 TITLE_FONT = pygame.font.SysFont("comicsans", 80)
 BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
@@ -234,6 +297,15 @@ def main():
 
     page = 0
     pause = False
+    
+    # load map declares..?
+    class SpriteSheet:
+        def parse_sprite(self, name):
+            path = join("assets", "LevelMap", name)
+            return pygame.image.load(path).convert_alpha()
+    
+    spritesheet = SpriteSheet()
+    tile_map = TileMap('assets/LevelMap/test_level.csv', spritesheet, scale = 3) #also scales up the map here
 
     pygame.mixer.music.load('assets/Sounds/background_music.wav')
     pygame.mixer.music.play(-1)
@@ -258,6 +330,7 @@ def main():
         elif page == 1: #new game page 
             if pause == False:
                 WINDOW.fill(WHITE)
+                tile_map.draw_map(WINDOW) #draw the map (so it appears in game)
                 handle_move(player)
                 player.loop(FPS)
                 draw_player(player)
