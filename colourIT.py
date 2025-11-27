@@ -290,6 +290,20 @@ def load_game(player):
 def if_save_exists():
     return os.path.exists('savegame.json')
 
+class Camera:
+    def __init__(self, map_width, map_height):
+        self.offset_x = 0
+        self.offset_y = 0
+        self.map_width = map_width
+        self.map_height = map_height 
+    def get_offset_position(self, entity):
+        screen_x = entity.rect.x + self.offset_x
+        screen_y = entity.rect.y + self.offset_y
+        return pygame.Rect(screen_x, screen_y, entity.rect.width, entity.rect.height)
+    def follow_player(self, player):
+        self.offset_x = -player.rect.centerx + WIDTH//2 
+        self.offset_y = -player.rect.centery + HEIGHT//2
+
 def main():
     player = Player(100, 100, 50, 50)
     pygame.display.set_caption("Colour IT!")
@@ -306,6 +320,8 @@ def main():
     
     spritesheet = SpriteSheet()
     tile_map = TileMap('assets/LevelMap/test_level.csv', spritesheet, scale = 3) #also scales up the map here
+
+    camera = Camera(tile_map.map_w, tile_map.map_h) 
 
     pygame.mixer.music.load('assets/Sounds/background_music.wav')
     pygame.mixer.music.play(-1)
@@ -330,11 +346,19 @@ def main():
         elif page == 1: #new game page 
             if pause == False:
                 WINDOW.fill(WHITE)
-                tile_map.draw_map(WINDOW) #draw the map (so it appears in game)
+
                 handle_move(player)
                 player.loop(FPS)
-                draw_player(player)
+
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
+
+                camera.follow_player(player)
+                for tile in tile_map.tiles:
+                    tile_screen_position = camera.get_offset_position(tile)
+                    WINDOW.blit(tile.image, tile_screen_position)
+                player_screen_position = camera.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
             elif pause == True:
                 WINDOW.fill(WHITE)
                 draw_player(player)
@@ -350,11 +374,6 @@ def main():
                 SAVE_BUTTON = draw_button("Save Game", BUTTON_X, LOAD_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
                 MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
-
-        elif page == 2: #load game page 
-            WINDOW.fill(WHITE)
-            load_title = TITLE_FONT.render("Load Game", 1, BLACK)
-            WINDOW.blit(load_title, ((WIDTH//2 - load_title.get_width()//2, TITLE_Y)))
 
         elif page == 3: #settings page 
             WINDOW.fill(WHITE)
