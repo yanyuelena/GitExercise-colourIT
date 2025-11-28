@@ -13,6 +13,40 @@ FPS = 24
 
 MUSIC_ON = True
 
+# fonts for main menu's text 
+TITLE_FONT = pygame.font.SysFont("comicsans", 80)
+BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
+
+# buttons dimensions
+BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 500, 70, 25
+
+# buttons positions
+BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
+TITLE_Y = 50
+FIRST_BUTTON_Y = 200
+SECOND_BUTTON_Y = FIRST_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
+THIRD_BUTTON_Y = SECOND_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
+FOURTH_BUTTON_Y = THIRD_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
+
+#colours constants
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREY = (128, 128, 128)
+LIGHT_GREY = (200, 200, 200)
+PURPLE = (150, 0, 200)
+RED = (255, 0, 0)
+ORANGE = (255, 165, 0)
+GREEN = (0, 255, 0)
+
+#pause icon
+PAUSE_BUTTON_SIDE = 100
+PAUSE_BUTTON_MARGIN = 20
+PAUSE_ICON = pygame.image.load('assets/icons/pause.png').convert_alpha()
+PAUSE_ICON = pygame.transform.scale(PAUSE_ICON, (PAUSE_BUTTON_SIDE, PAUSE_BUTTON_SIDE))
+
+# health bar 
+BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 10 
+
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 5
 
@@ -59,6 +93,10 @@ class Player(pygame.sprite.Sprite):
         self.animation_count = 0
         self.fall_count = 0
         self.melee_attack = False
+
+        #player health
+        self.health = 100
+        self.max_health = 100
 
 #MOVEMENT FUNC
     def move(self, dx, dy):
@@ -208,35 +246,6 @@ class TileMap():
         return tiles 
 #MAP SETTING TEST END ---------------------------------------------------------------------------------------------------
 
-# fonts for main menu's text 
-TITLE_FONT = pygame.font.SysFont("comicsans", 80)
-BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
-
-# buttons dimensions
-BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 600, 80, 30
-PAUSE_BUTTON_SIDE = 50
-PAUSE_BUTTON_MARGIN = 20
-
-# buttons positions
-BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
-TITLE_Y = 50
-NEW_GAME_BUTTON_Y = 200
-LOAD_GAME_BUTTON_Y = NEW_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
-SETTINGS_Y = LOAD_GAME_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
-QUIT_Y = SETTINGS_Y + BUTTON_HEIGHT + BUTTON_SPACING
-
-BGM_BUTTON_Y = 200
-
-#colours constants
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GREY = (128, 128, 128)
-LIGHT_GREY = (200, 200, 200)
-PURPLE = (150, 0, 200)
-RED = (255, 0, 0)
-ORANGE = (255, 165, 0)
-
-
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -263,9 +272,13 @@ def draw_pause_button(mouse_pos):
     button_y = PAUSE_BUTTON_MARGIN
     button = pygame.Rect(button_x, button_y, PAUSE_BUTTON_SIDE, PAUSE_BUTTON_SIDE)
     if button.collidepoint(mouse_pos):
-        pygame.draw.rect(WINDOW, RED, button)
+        pygame.draw.rect(WINDOW, LIGHT_GREY, button)
     else:
-        pygame.draw.rect(WINDOW, ORANGE, button)
+        pygame.draw.rect(WINDOW, WHITE, button)
+
+    icon_x = button_x + (PAUSE_BUTTON_SIDE - PAUSE_ICON.get_width()) // 2
+    icon_y = button_y + (PAUSE_BUTTON_SIDE - PAUSE_ICON.get_height()) // 2
+    WINDOW.blit(PAUSE_ICON, (icon_x, icon_y))
 
     return button
 
@@ -304,6 +317,31 @@ class Camera:
         self.offset_x = -player.rect.centerx + WIDTH//2 
         self.offset_y = -player.rect.centery + HEIGHT//2
 
+def toggle_bgm():
+    global MUSIC_ON
+    if MUSIC_ON:
+        pygame.mixer.music.pause()
+        MUSIC_ON = False
+    else:
+        pygame.mixer.music.unpause()
+        MUSIC_ON = True
+
+def draw_message(message):
+    if message:
+        message_font = pygame.font.SysFont("comicsans", 30)
+        message_text = message_font.render(message, 1, BLACK)
+
+        message_x = WIDTH//2 - message_text.get_width()//2
+        message_y = HEIGHT - 100
+
+        WINDOW.blit(message_text, (message_x, message_y))
+
+def draw_health_bar(x, y, health, max_health):
+    pygame.draw.rect(WINDOW, RED, (x, y, BAR_WIDTH, BAR_HEIGHT))
+    current_width = int((health/max_health)*BAR_WIDTH)
+    pygame.draw.rect(WINDOW, GREEN, (x, y, current_width, BAR_HEIGHT))
+    pygame.draw.rect(WINDOW, BLACK, (x, y, BAR_WIDTH, BAR_HEIGHT),1 )
+
 def main():
     player = Player(100, 100, 50, 50)
     pygame.display.set_caption("Colour IT!")
@@ -311,6 +349,11 @@ def main():
 
     page = 0
     pause = False
+    show_new_game_warning = False
+
+    message = ""
+    message_timer = 0
+    MESSAGE_DURATION = FPS*2
     
     # load map declares..?
     class SpriteSheet:
@@ -332,16 +375,35 @@ def main():
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
 
-        
+        if message_timer > 0:
+            message_timer -= 1
+
         if page == 0: #main menu page 
             WINDOW.fill(GREY)
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
-            NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, NEW_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            LOAD_GAME_BUTTON = draw_button("Load Game", BUTTON_X, LOAD_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, QUIT_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            LOAD_GAME_BUTTON = draw_button("Load Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+
+            if show_new_game_warning:
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                WINDOW.blit(overlay, (0, 0))
+                warning_text = TITLE_FONT .render("Warning", 1, RED)
+                WINDOW.blit(warning_text, ((WIDTH//2 - warning_text.get_width()//2, TITLE_Y)))
+
+                message_font = pygame.font.SysFont("comicsans", 40)
+                message1 = message_font.render("You have an existing game!", 1, BLACK)
+                message2 = message_font.render("Start a new game anyway?", 1, BLACK)
+                message3 = message_font.render("Press ESC to return", 1, BLACK)
+                WINDOW.blit(message1, ((WIDTH//2 - message1.get_width()//2, TITLE_Y + 100)))
+                WINDOW.blit(message2, ((WIDTH//2 - message2.get_width()//2, TITLE_Y + 150)))
+                WINDOW.blit(message3, ((WIDTH//2 - message3.get_width()//2, TITLE_Y + 200)))
+                YES_BUTTON = draw_button("Yes! Start a new game.", BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                NO_BUTTON = draw_button("No!", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
         elif page == 1: #new game page 
             if pause == False:
@@ -350,8 +412,6 @@ def main():
                 handle_move(player)
                 player.loop(FPS)
 
-                PAUSE_BUTTON = draw_pause_button(mouse_pos)
-
                 camera.follow_player(player)
                 for tile in tile_map.tiles:
                     tile_screen_position = camera.get_offset_position(tile)
@@ -359,9 +419,19 @@ def main():
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
 
+                PAUSE_BUTTON = draw_pause_button(mouse_pos)
+                draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
+
+
             elif pause == True:
                 WINDOW.fill(WHITE)
-                draw_player(player)
+
+                for tile in tile_map.tiles:
+                    tile_screen_position = camera.get_offset_position(tile)
+                    WINDOW.blit(tile.image, tile_screen_position)
+                player_screen_position = camera.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
                 overlay = pygame.Surface((WIDTH, HEIGHT))
                 overlay.fill(GREY)
                 overlay.set_alpha(128)
@@ -370,16 +440,24 @@ def main():
                 pause_text = TITLE_FONT .render("Paused!", 1, BLACK)
                 WINDOW.blit(pause_text, ((WIDTH//2 - pause_text.get_width()//2, TITLE_Y)))
 
-                RESUME_BUTTON = draw_button("Resume", BUTTON_X, NEW_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, LOAD_GAME_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SETTINGS_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                music_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+                BGM_BUTTON = draw_button(music_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
 
         elif page == 3: #settings page 
             WINDOW.fill(WHITE)
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
+
+            bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+            BGM_BUTTON = draw_button(bgm_text, BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
+        if message_timer > 0:
+            draw_message(message)
 
         pygame.display.update()
 
@@ -389,20 +467,37 @@ def main():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if page == 0:
-                    if NEW_GAME_BUTTON.collidepoint(mouse_pos):
-                        page = 1
-                        pause = False
-                    if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
-                        if if_save_exists():
-                            load_game(player)
+                    if show_new_game_warning:
+                        if YES_BUTTON.collidepoint(mouse_pos):
+                            if os.path.exists('savegame.json'):
+                                os.remove('savegame.json')
+                            player = Player(tile_map.start_x, tile_map.start_y, 50, 50)
+                            show_new_game_warning = False
                             page = 1
                             pause = False
-                        else: 
-                            print("No save file found!")
-                    if SETTINGS_BUTTON.collidepoint(mouse_pos):
-                        page = 3
-                    if QUIT_BUTTON.collidepoint(mouse_pos):
-                        run = False
+                        if NO_BUTTON.collidepoint(mouse_pos):
+                            show_new_game_warning = False
+                    else:
+                        if NEW_GAME_BUTTON.collidepoint(mouse_pos):
+                            pause = False
+                            if if_save_exists():
+                                show_new_game_warning = True
+                            else: 
+                                player = Player(tile_map.start_x, tile_map.start_y, 50, 50)
+                                page = 1
+                                pause = False
+                        if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
+                            if if_save_exists():
+                                load_game(player)
+                                page = 1
+                                pause = False
+                            else: 
+                                message = "No saved game found!"
+                                message_timer = MESSAGE_DURATION
+                        if SETTINGS_BUTTON.collidepoint(mouse_pos):
+                            page = 3
+                        if QUIT_BUTTON.collidepoint(mouse_pos):
+                            run = False
 
                 elif page == 1:
                     if pause == False:
@@ -415,12 +510,23 @@ def main():
                             page = 0
                         if SAVE_BUTTON.collidepoint(mouse_pos):
                             save_game(player)
+                            message = "Game Saved!"
+                            message_timer = MESSAGE_DURATION
+                        if BGM_BUTTON.collidepoint(mouse_pos):
+                            toggle_bgm()
+                elif page == 3:
+                    if BGM_BUTTON.collidepoint(mouse_pos):
+                        toggle_bgm()
+                    if MENU_BUTTON.collidepoint(mouse_pos):
+                        page = 0
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if page == 1:
+                    if page == 0 and show_new_game_warning:
+                        show_new_game_warning = False   
+                    elif page == 1:
                         pause = not pause
-                    elif page == 2 or page == 3:
+                    elif page == 3:
                         page = 0
                     elif page == 0:
                         run = False
