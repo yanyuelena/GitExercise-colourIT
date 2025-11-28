@@ -54,19 +54,25 @@ class Player(pygame.sprite.Sprite):
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel = 0
         self.y_vel = 0
-        self.mask = None
         self.direction = "left"
         self.animation_count = 0
         self.fall_count = 0
         self.jump_count = 0
         self.melee_attack = False
 
+        self.hitbox = pygame.Rect(x + 55, y + 40, 40, 110)
+
+        self.sprite = self.SPRITES["idle_left"][0]
+        self.update()
+
+
 #MOVEMENT FUNC
     def jump(self):
         self.y_vel = -self.GRAVITY * 8
-        self.animation_count = 0
         self.jump_count += 1
         self.fall_count = 0
+        if not self.melee_attack:
+            self.animation_count = 0
 
     def move(self, dx, dy):
         self.rect.x += dx
@@ -77,7 +83,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction != "left":
             self.direction = "left"
 
-            if not self.melee_attack:
+            if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
 
     def move_right(self, vel):
@@ -85,7 +91,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction != "right":
             self.direction = "right"
 
-            if not self.melee_attack:
+            if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
 
     def melee(self):
@@ -95,8 +101,6 @@ class Player(pygame.sprite.Sprite):
 
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
-        #self.move(self.x_vel, self.y_vel)
-
         self.fall_count += 1
         self.update_sprite()
 
@@ -111,7 +115,9 @@ class Player(pygame.sprite.Sprite):
 
     def update_sprite(self):
         sprite_sheet = "idle"
-        if self.y_vel < 0:
+        if self.melee_attack:
+            sprite_sheet = "melee"
+        elif self.y_vel < 0:
             if self.jump_count == 1:
                 sprite_sheet = "jump"
             elif self.jump_count == 2:
@@ -120,12 +126,10 @@ class Player(pygame.sprite.Sprite):
             sprite_sheet = "fall"
         elif self.x_vel != 0:
             sprite_sheet = "run"
-        elif self.melee_attack:
-            sprite_sheet = "melee"
 
         sprite_sheet_name = sprite_sheet + "_" + self.direction
-
         sprites = self.SPRITES[sprite_sheet_name]
+
         if self.melee_attack:
             total_duration = len(sprites) * self.ANIMATION_DELAY
             
@@ -151,7 +155,8 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-        self.mask = pygame.mask.from_surface(self.sprite)
+        self.hitbox.x = self.rect.x + 55
+        self.hitbox.y = self.rect.y + 40
 
     def draw(self, win):
         win.blit(self.sprite, (self.rect.x, self.rect.y))
@@ -159,66 +164,64 @@ class Player(pygame.sprite.Sprite):
 def handle_vertical_collision(player, objects, dy):
     collided_objects = []
 
-    player.move(0, dy)
-    player.update()
-
     for obj in objects:
-        if pygame.sprite.collide_mask(player, obj):
+        if player.hitbox.colliderect(obj.rect):
             if dy > 0: 
-                threshold = player.y_vel + 10 
-                
-                if player.rect.bottom < obj.rect.top + threshold:
-                    player.rect.bottom = obj.rect.top
-                    player.landed()
+                offset = player.hitbox.bottom - player.rect.bottom 
+                player.rect.bottom = obj.rect.top - offset
+                player.hitbox.bottom = obj.rect.top
+                player.landed()
+                collided_objects.append(obj)
             
-            elif dy < 0:            
-                if player.rect.top > obj.rect.bottom - 50:
-                    player.rect.top = obj.rect.bottom
-                    player.hit_head()
-
-            collided_objects.append(obj)
+            elif dy < 0:
+                offset = player.hitbox.top - player.rect.top
+                player.rect.top = obj.rect.bottom - offset
+                player.hitbox.top = obj.rect.bottom
+                player.hit_head()
+                collided_objects.append(obj)
     
     return collided_objects
+
 
 def handle_horizontal_collision(player, objects, dx):
     if dx == 0:
         return
 
-    player.move(dx, 0)
-    player.update()
-    
     collided_object = None
     
     for obj in objects:
-        if pygame.sprite.collide_mask(player, obj):
+        if player.hitbox.colliderect(obj.rect):
             collided_object = obj
+            
+            if dx > 0:  #MOVE RIGHT
+                player.rect.right = obj.rect.left + 55
+                player.hitbox.right = obj.rect.left
+            elif dx < 0:  #MOVE LEFT
+                player.rect.left = obj.rect.right - 55
+                player.hitbox.left = obj.rect.right
+            
+            player.x_vel = 0
             break
-            
-    if collided_object:
-        step = 1 if dx > 0 else -1
-        
-        for _ in range(abs(int(dx)) + 5):
-            if not pygame.sprite.collide_mask(player, collided_object):
-                break
-            
-            player.move(-step, 0)
-            player.update()
+    
+    return collided_object
 
 def handle_move(player, objects):
     keys = pygame.key.get_pressed()
 
-    player.x_vel = 0
-
     if keys[pygame.K_a]:
-            player.move_left(PLAYER_VEL)
-    if keys[pygame.K_d]:
-            player.move_right(PLAYER_VEL)
-    if keys[pygame.K_SPACE]:
-        player.melee()
+        player.move_left(PLAYER_VEL)
+    elif keys[pygame.K_d]:
+        player.move_right(PLAYER_VEL)
+    else:
+        player.x_vel = 0
 
+    player.move(player.x_vel, 0)
+    player.update()
     handle_horizontal_collision(player, objects, player.x_vel)
-    handle_vertical_collision(player, objects, player.y_vel)
     
+    player.move(0, player.y_vel)
+    player.update()
+    handle_vertical_collision(player, objects, player.y_vel)
 
 def draw_player(player): 
     player.draw(WINDOW)
@@ -236,7 +239,6 @@ class Tile(pygame.sprite.Sprite):
                                             int(original_image.get_height() * scale)))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
-        self.mask = pygame.mask.from_surface(self.image) #MASK FOR COLLISION ADDED
     
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
@@ -371,6 +373,20 @@ def load_game(player):
 def if_save_exists():
     return os.path.exists('savegame.json')
 
+class Camera:
+    def __init__(self, map_width, map_height):
+        self.offset_x = 0
+        self.offset_y = 0
+        self.map_width = map_width
+        self.map_height = map_height 
+    def get_offset_position(self, entity):
+        screen_x = entity.rect.x + self.offset_x
+        screen_y = entity.rect.y + self.offset_y
+        return pygame.Rect(screen_x, screen_y, entity.rect.width, entity.rect.height)
+    def follow_player(self, player):
+        self.offset_x = -player.rect.centerx + WIDTH//2 
+        self.offset_y = -player.rect.centery + HEIGHT//2
+
 def main():
     player = Player(100, 100, 50, 50)
     pygame.display.set_caption("Colour IT!")
@@ -387,6 +403,8 @@ def main():
     
     spritesheet = SpriteSheet()
     tile_map = TileMap('assets/LevelMap/test_level.csv', spritesheet, scale = 3) #also scales up the map here
+
+    camera = Camera(tile_map.map_w, tile_map.map_h) 
 
     pygame.mixer.music.load('assets/Sounds/background_music.wav')
     pygame.mixer.music.play(-1)
@@ -411,14 +429,38 @@ def main():
         elif page == 1: #new game page 
             if pause == False:
                 WINDOW.fill(WHITE)
-                tile_map.draw_map(WINDOW) #draw the map (so it appears in game)
+                
                 player.loop(FPS)
                 handle_move(player, tile_map.tiles)
-                draw_player(player)
+
+                camera.follow_player(player)
+
+                for tile in tile_map.tiles:
+                    tile_screen_position = camera.get_offset_position(tile)
+                    WINDOW.blit(tile.image, tile_screen_position)
+                
+                player_screen_position = camera.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+                #START OF CHECK HITBOX HERE#======================================================================
+                """
+                pygame.draw.rect(WINDOW, (255, 0, 0), pygame.Rect(
+                    player.hitbox.x + camera.offset_x,
+                    player.hitbox.y + camera.offset_y,
+                    player.hitbox.width,
+                    player.hitbox.height
+                ), 2)
+                """
+                #END OF CHECK HITBOX HERE#========================================================================
+            
+
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
+
             elif pause == True:
                 WINDOW.fill(WHITE)
-                draw_player(player)
+                
+                player_screen_position = camera.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
                 overlay = pygame.Surface((WIDTH, HEIGHT))
                 overlay.fill(GREY)
                 overlay.set_alpha(128)
@@ -480,7 +522,9 @@ def main():
 
             if event.type == pygame.KEYDOWN:
                 if page == 1 and not pause:
-                    if event.key == pygame.K_w and player.jump_count < 2:
+                    if event.key == pygame.K_SPACE:
+                        player.melee()
+                    elif event.key == pygame.K_w and player.jump_count < 2:
                         player.jump()
                 if event.key == pygame.K_ESCAPE:
                     if page == 1:
