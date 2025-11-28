@@ -12,6 +12,7 @@ WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 FPS = 24
 
 MUSIC_ON = True
+SFX_ON = True 
 
 # fonts for main menu's text 
 TITLE_FONT = pygame.font.SysFont("comicsans", 80)
@@ -448,8 +449,12 @@ def main():
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
-    pygame.mixer.music.load('assets/Sounds/background_music.wav')
+    #main bgm
+    pygame.mixer.music.load('assets/sounds/background_music.wav')
     pygame.mixer.music.play(-1)
+    #sound effects 
+    attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
+    attack_sound.set_volume(0.5)
 
     run = True
     while run: 
@@ -614,6 +619,8 @@ def main():
                 if page == 1 and not pause:
                     if event.key == pygame.K_SPACE:
                         player.melee()
+                        if SFX_ON:
+                            attack_sound.play()
                     elif event.key == pygame.K_w and player.jump_count < 2:
                         player.jump()
                 if event.key == pygame.K_ESCAPE:
