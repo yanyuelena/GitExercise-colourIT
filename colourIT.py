@@ -9,7 +9,7 @@ pygame.mixer.init()
 WIDTH, HEIGHT = 1280, 720 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE) 
 
-FPS = 24
+FPS = 30
 
 MUSIC_ON = True
 SFX_ON = True 
@@ -47,7 +47,7 @@ PAUSE_ICON = pygame.image.load('assets/icons/pause.png').convert_alpha()
 PAUSE_ICON = pygame.transform.scale(PAUSE_ICON, (PAUSE_BUTTON_SIDE, PAUSE_BUTTON_SIDE))
 
 # health bar 
-BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 10 
+BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 7
@@ -477,10 +477,10 @@ def main():
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
-            NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            LOAD_GAME_BUTTON = draw_button("Load Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-            QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, FIRST_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            LOAD_GAME_BUTTON = draw_button("Load Game", BUTTON_X, SECOND_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            SETTINGS_BUTTON = draw_button("Settings", BUTTON_X, THIRD_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            QUIT_BUTTON = draw_button("Quit Game", BUTTON_X, FOURTH_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
             if show_new_game_warning:
                 overlay = pygame.Surface((WIDTH, HEIGHT))
@@ -525,8 +525,8 @@ def main():
                 """
                 #END OF CHECK HITBOX HERE#========================================================================
             
-
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
+                draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
 
             elif pause == True:
                 WINDOW.fill(WHITE)
@@ -552,7 +552,7 @@ def main():
 
 
         elif page == 3: #settings page 
-            WINDOW.fill(WHITE)
+            WINDOW.fill(GREY)
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
 
