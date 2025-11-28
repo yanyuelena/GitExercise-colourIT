@@ -23,11 +23,12 @@ BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_SPACING = 500, 70, 25
 
 # buttons positions
 BUTTON_X = WIDTH//2 - BUTTON_WIDTH//2
-TITLE_Y = 50
-FIRST_BUTTON_Y = 200
+TITLE_Y = 40
+FIRST_BUTTON_Y = 160
 SECOND_BUTTON_Y = FIRST_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 THIRD_BUTTON_Y = SECOND_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 FOURTH_BUTTON_Y = THIRD_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
+FIFTH_BUTTON_Y = FOURTH_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 
 #colours constants
 WHITE = (255, 255, 255)
@@ -409,6 +410,10 @@ def toggle_bgm():
         pygame.mixer.music.unpause()
         MUSIC_ON = True
 
+def toggle_sfx():
+    global SFX_ON
+    SFX_ON = not SFX_ON
+
 def draw_message(message):
     if message:
         message_font = pygame.font.SysFont("comicsans", 30)
@@ -455,10 +460,12 @@ def main():
     #sound effects 
     attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
     attack_sound.set_volume(0.5)
+    jump_sound = pygame.mixer.Sound('assets/sounds/jump.flac')
+    jump_sound.set_volume(0.5)
 
     run = True
     while run: 
-        global WINDOW, MUSIC_ON
+        global WINDOW, MUSIC_ON, SFX_ON
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
 
@@ -537,9 +544,11 @@ def main():
 
                 RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
                 SAVE_BUTTON = draw_button("Save Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-                music_text = "BGM ON" if MUSIC_ON else "BGM OFF"
-                BGM_BUTTON = draw_button(music_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+                BGM_BUTTON = draw_button(bgm_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
+                SFX_BUTTON = draw_button(sfx_text, BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
 
         elif page == 3: #settings page 
@@ -549,6 +558,8 @@ def main():
 
             bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
             BGM_BUTTON = draw_button(bgm_text, BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
+            SFX_BUTTON = draw_button(sfx_text, BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
         if message_timer > 0:
@@ -609,9 +620,13 @@ def main():
                             message_timer = MESSAGE_DURATION
                         if BGM_BUTTON.collidepoint(mouse_pos):
                             toggle_bgm()
+                        if SFX_BUTTON.collidepoint(mouse_pos):
+                            toggle_sfx()
                 elif page == 3:
                     if BGM_BUTTON.collidepoint(mouse_pos):
                         toggle_bgm()
+                    if SFX_BUTTON.collidepoint(mouse_pos):
+                        toggle_sfx()
                     if MENU_BUTTON.collidepoint(mouse_pos):
                         page = 0
 
@@ -623,6 +638,8 @@ def main():
                             attack_sound.play()
                     elif event.key == pygame.K_w and player.jump_count < 2:
                         player.jump()
+                        if SFX_ON:
+                            jump_sound.play()
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
                         show_new_game_warning = False   
