@@ -455,6 +455,8 @@ def main():
     #sound effects 
     attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
     attack_sound.set_volume(0.5)
+    jump_sound = pygame.mixer.Sound('assets/sounds/jump.flac')
+    jump_sound.set_volume(0.5)
 
     run = True
     while run: 
@@ -623,6 +625,8 @@ def main():
                             attack_sound.play()
                     elif event.key == pygame.K_w and player.jump_count < 2:
                         player.jump()
+                        if SFX_ON:
+                            jump_sound.play()
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
                         show_new_game_warning = False   
