@@ -48,7 +48,7 @@ PAUSE_ICON = pygame.transform.scale(PAUSE_ICON, (PAUSE_BUTTON_SIDE, PAUSE_BUTTON
 BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 10 
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 5
+PLAYER_VEL = 7
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -67,7 +67,7 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
             surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
             rect = pygame.Rect(i * width, 0, width, height)
             surface.blit(sprite_sheet, (0, 0), rect)
-            sprites.append(pygame.transform.scale2x(surface))
+            sprites.append(surface)
         
         if direction:
             all_sprites[image.replace(".png", "") + "_right"] = sprites
@@ -88,17 +88,29 @@ class Player(pygame.sprite.Sprite):
         self.rect = pygame.Rect(x, y, width, height)
         self.x_vel = 0
         self.y_vel = 0
-        self.mask = None
         self.direction = "left"
         self.animation_count = 0
         self.fall_count = 0
+        self.jump_count = 0
         self.melee_attack = False
+
+        self.hitbox = pygame.Rect(x + 55, y + 40, 40, 110)
+
+        self.sprite = self.SPRITES["idle_left"][0]
+        self.update()
 
         #player health
         self.health = 100
         self.max_health = 100
 
 #MOVEMENT FUNC
+    def jump(self):
+        self.y_vel = -self.GRAVITY * 8
+        self.jump_count += 1
+        self.fall_count = 0
+        if not self.melee_attack:
+            self.animation_count = 0
+
     def move(self, dx, dy):
         self.rect.x += dx
         self.rect.y += dy
@@ -108,7 +120,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction != "left":
             self.direction = "left"
 
-            if not self.melee_attack:
+            if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
 
     def move_right(self, vel):
@@ -116,7 +128,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction != "right":
             self.direction = "right"
 
-            if not self.melee_attack:
+            if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
 
     def melee(self):
@@ -125,23 +137,36 @@ class Player(pygame.sprite.Sprite):
             self.animation_count = 0
 
     def loop(self, fps):
-        # self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
-        self.move(self.x_vel, self.y_vel)
-
+        self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
         self.fall_count += 1
         self.update_sprite()
 
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.jump_count = 0
+
+    def hit_head(self):
+        self.count = 0
+        self.y_vel *= -1
+
     def update_sprite(self):
         sprite_sheet = "idle"
-        if self.x_vel != 0:
-            sprite_sheet = "run"
-
         if self.melee_attack:
             sprite_sheet = "melee"
+        elif self.y_vel < 0:
+            if self.jump_count == 1:
+                sprite_sheet = "jump"
+            elif self.jump_count == 2:
+                sprite_sheet = "jump"
+        elif self.y_vel > self.GRAVITY * 2:
+            sprite_sheet = "fall"
+        elif self.x_vel != 0:
+            sprite_sheet = "run"
 
         sprite_sheet_name = sprite_sheet + "_" + self.direction
-
         sprites = self.SPRITES[sprite_sheet_name]
+
         if self.melee_attack:
             total_duration = len(sprites) * self.ANIMATION_DELAY
             
@@ -152,6 +177,12 @@ class Player(pygame.sprite.Sprite):
                 sprite_index = 0
             else:
                 sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+
+        elif sprite_sheet == "jump":
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY)
+            if sprite_index >= len(sprites):
+                        sprite_index = len(sprites) - 1
+
         else:
             sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
     
@@ -161,22 +192,73 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-        self.mask = pygame.mask.from_surface(self.sprite)
+        self.hitbox.x = self.rect.x + 55
+        self.hitbox.y = self.rect.y + 40
 
     def draw(self, win):
         win.blit(self.sprite, (self.rect.x, self.rect.y))
 
-def handle_move(player):
+def handle_vertical_collision(player, objects, dy):
+    collided_objects = []
+
+    for obj in objects:
+        if player.hitbox.colliderect(obj.rect):
+            if dy > 0: 
+                offset = player.hitbox.bottom - player.rect.bottom 
+                player.rect.bottom = obj.rect.top - offset
+                player.hitbox.bottom = obj.rect.top
+                player.landed()
+                collided_objects.append(obj)
+            
+            elif dy < 0:
+                offset = player.hitbox.top - player.rect.top
+                player.rect.top = obj.rect.bottom - offset
+                player.hitbox.top = obj.rect.bottom
+                player.hit_head()
+                collided_objects.append(obj)
+    
+    return collided_objects
+
+
+def handle_horizontal_collision(player, objects, dx):
+    if dx == 0:
+        return
+
+    collided_object = None
+    
+    for obj in objects:
+        if player.hitbox.colliderect(obj.rect):
+            collided_object = obj
+            
+            if dx > 0:  #MOVE RIGHT
+                player.rect.right = obj.rect.left + 55
+                player.hitbox.right = obj.rect.left
+            elif dx < 0:  #MOVE LEFT
+                player.rect.left = obj.rect.right - 55
+                player.hitbox.left = obj.rect.right
+            
+            player.x_vel = 0
+            break
+    
+    return collided_object
+
+def handle_move(player, objects):
     keys = pygame.key.get_pressed()
 
-    player.x_vel = 0
     if keys[pygame.K_a]:
         player.move_left(PLAYER_VEL)
-    if keys[pygame.K_d]:
+    elif keys[pygame.K_d]:
         player.move_right(PLAYER_VEL)
-    if keys[pygame.K_SPACE]:
-        player.melee()
+    else:
+        player.x_vel = 0
+
+    player.move(player.x_vel, 0)
+    player.update()
+    handle_horizontal_collision(player, objects, player.x_vel)
     
+    player.move(0, player.y_vel)
+    player.update()
+    handle_vertical_collision(player, objects, player.y_vel)
 
 def draw_player(player): 
     player.draw(WINDOW)
@@ -408,27 +490,35 @@ def main():
         elif page == 1: #new game page 
             if pause == False:
                 WINDOW.fill(WHITE)
-
-                handle_move(player)
+                
                 player.loop(FPS)
+                handle_move(player, tile_map.tiles)
 
                 camera.follow_player(player)
+
                 for tile in tile_map.tiles:
                     tile_screen_position = camera.get_offset_position(tile)
                     WINDOW.blit(tile.image, tile_screen_position)
+                
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
+                #START OF CHECK HITBOX HERE#======================================================================
+                """
+                pygame.draw.rect(WINDOW, (255, 0, 0), pygame.Rect(
+                    player.hitbox.x + camera.offset_x,
+                    player.hitbox.y + camera.offset_y,
+                    player.hitbox.width,
+                    player.hitbox.height
+                ), 2)
+                """
+                #END OF CHECK HITBOX HERE#========================================================================
+            
 
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
-                draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
-
 
             elif pause == True:
                 WINDOW.fill(WHITE)
-
-                for tile in tile_map.tiles:
-                    tile_screen_position = camera.get_offset_position(tile)
-                    WINDOW.blit(tile.image, tile_screen_position)
+                
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
 
@@ -521,6 +611,11 @@ def main():
                         page = 0
 
             if event.type == pygame.KEYDOWN:
+                if page == 1 and not pause:
+                    if event.key == pygame.K_SPACE:
+                        player.melee()
+                    elif event.key == pygame.K_w and player.jump_count < 2:
+                        player.jump()
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
                         show_new_game_warning = False   
