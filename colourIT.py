@@ -244,8 +244,10 @@ def handle_horizontal_collision(player, objects, dx):
     
     return collided_object
 
-def handle_move(player, objects):
+def handle_move(player, objects, run_sound, sfx_on):
     keys = pygame.key.get_pressed()
+
+    is_running = (keys[pygame.K_a] or keys[pygame.K_d]) and player.jump_count==0
 
     if keys[pygame.K_a]:
         player.move_left(PLAYER_VEL)
@@ -253,6 +255,12 @@ def handle_move(player, objects):
         player.move_right(PLAYER_VEL)
     else:
         player.x_vel = 0
+
+    if is_running and SFX_ON:
+        if run_sound.get_num_channels() == 0:
+            run_sound.play(loops=-1)
+    else: 
+        run_sound.stop()
 
     player.move(player.x_vel, 0)
     player.update()
@@ -461,7 +469,9 @@ def main():
     attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
     attack_sound.set_volume(0.5)
     jump_sound = pygame.mixer.Sound('assets/sounds/jump.flac')
-    jump_sound.set_volume(0.5)
+    jump_sound.set_volume(1)
+    run_sound = pygame.mixer.Sound('assets/sounds/run.wav')
+    run_sound.set_volume(1)
 
     run = True
     while run: 
@@ -504,7 +514,7 @@ def main():
                 WINDOW.fill(WHITE)
                 
                 player.loop(FPS)
-                handle_move(player, tile_map.tiles)
+                handle_move(player, tile_map.tiles, run_sound, SFX_ON)
 
                 camera.follow_player(player)
 
