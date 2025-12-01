@@ -365,7 +365,12 @@ class Slime(pygame.sprite.Sprite):
 
         sprite_sheet_name = sprite_sheet + "_" + self.direction
         sprites = self.SPRITES[sprite_sheet_name]
-        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if sprite_sheet == "move":
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY)
+            if sprite_index >= len(sprites):
+                sprite_index = len(sprites) - 1
+        else:
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
 
