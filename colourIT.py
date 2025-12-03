@@ -291,13 +291,13 @@ class Tile(pygame.sprite.Sprite):
         surface.blit(self.image, (self.rect.x, self.rect.y))
         
 class TileMap():
-    def __init__(self, test_level, spritesheet, scale = 1):
-        self.tile_size = 16 * scale
+    def __init__(self, level0, spritesheet, scale = 1):
+        self.tile_size = 64 * scale
         self.scale = scale
         self.start_x, self.start_y = 0, 0
         self.spritesheet = spritesheet
         self.map_w, self.map_h = 0, 0
-        self.tiles = self.load_tiles(test_level)
+        self.tiles = self.load_tiles(level0)
         self.map_surface = pygame.Surface((self.map_w, self.map_h))
         self.map_surface.set_colorkey((0, 0, 0))
         self.load_map()
@@ -309,16 +309,16 @@ class TileMap():
         for tile in self.tiles:
             tile.draw(self.map_surface)
     
-    def read_csv(self, test_level):
+    def read_csv(self, level0):
         map = []
-        with open(os.path.join(test_level)) as data:
+        with open(os.path.join(level0)) as data:
             data = csv.reader(data, delimiter=',')
             for row in data: map.append(list(row))
             return map
     
-    def load_tiles(self, test_level):
+    def load_tiles(self, level0):
         tiles = []
-        map = self.read_csv(test_level)
+        map = self.read_csv(level0)
         x, y = 0, 0
         for row in map:
             x = 0
@@ -326,11 +326,32 @@ class TileMap():
                 if tile == '-1':
                     self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
                 elif tile == '0':
-                    tiles.append(Tile('green.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '1':
-                    tiles.append(Tile('blue.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '2':
-                    tiles.append(Tile('brown.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '3':
+                    tiles.append(Tile('lava3.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '7':
+                    tiles.append(Tile('pipe01.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '4':
+                    tiles.append(Tile('pipe00.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '5':
+                    tiles.append(Tile('pipe0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '8':
+                    tiles.append(Tile('pipe1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '11':
+                    tiles.append(Tile('pipeturn.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '12':
+                    tiles.append(Tile('pipeturn0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '6':
+                    tiles.append(Tile('pipeturn1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '13':
+                    tiles.append(Tile('pipeturn2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '10':
+                    tiles.append(Tile('pipe2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                
                 x += 1
             y += 1
         
@@ -458,7 +479,7 @@ def main():
             return pygame.image.load(path).convert_alpha()
     
     spritesheet = SpriteSheet()
-    tile_map = TileMap('assets/LevelMap/test_level.csv', spritesheet, scale = 3) #also scales up the map here
+    tile_map = TileMap('assets/LevelMap/level0.csv', spritesheet, scale = 1) #also scales up the map here
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
