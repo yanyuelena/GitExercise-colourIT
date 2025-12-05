@@ -54,7 +54,7 @@ BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 20
 
 # dialogue box constants
 DIALOGUE_BOX_HEIGHT = 150
-DIALOGUE_BOX_WIDTH = 400
+DIALOGUE_BOX_WIDTH = 1000
 DIALOGUE_BOX_MARGIN = 20
 DIALOGUE_TEXT_FONT = pygame.font.SysFont("comicsans", 24)
 DIALOGUE_TITLE_DONT = pygame.font.SysFont("comicsans",30, bold=True)
