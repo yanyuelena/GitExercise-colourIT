@@ -340,7 +340,7 @@ class Slime(pygame.sprite.Sprite):
             self.move_timer += 1
             self.is_attacking = False
 
-        if self.move_timer > 10:
+        if self.move_timer > 4:
                 self.move_timer = 0
                 self.is_attacking = True
                 
@@ -632,7 +632,7 @@ def main():
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
-    enemies = [Slime(100, 100, 150, 150)]
+    enemies = [Slime(2000, 4000, 150, 150)]
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -698,7 +698,7 @@ def main():
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
-                            player.health -= 1
+                            player.health -= 5
                             player.y_vel = -5
                             if player.rect.x < enemy.rect.x:
                                 player.knockback_vel = -15
