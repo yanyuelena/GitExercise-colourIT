@@ -118,6 +118,9 @@ class Player(pygame.sprite.Sprite):
         #player health
         self.health = 100
         self.max_health = 100
+        #KNOCKBACK FOR TAKING DAMAGE
+        self.knockback_timer = 0
+        self.knockback_vel = 0
 
 #MOVEMENT FUNC
     def jump(self):
@@ -261,20 +264,27 @@ def handle_horizontal_collision(player, objects, dx):
 def handle_move(player, objects, run_sound, sfx_on):
     keys = pygame.key.get_pressed()
 
-    is_running = (keys[pygame.K_a] or keys[pygame.K_d]) and player.jump_count==0
-
-    if keys[pygame.K_a]:
-        player.move_left(PLAYER_VEL)
-    elif keys[pygame.K_d]:
-        player.move_right(PLAYER_VEL)
-    else:
-        player.x_vel = 0
-
-    if is_running and SFX_ON:
-        if run_sound.get_num_channels() == 0:
-            run_sound.play(loops=-1)
-    else: 
+    if player.knockback_timer > 0:
+        player.x_vel = player.knockback_vel
+        player.knockback_timer -= 1
         run_sound.stop()
+
+    else:
+
+        is_running = (keys[pygame.K_a] or keys[pygame.K_d]) and player.jump_count==0
+
+        if keys[pygame.K_a]:
+            player.move_left(PLAYER_VEL)
+        elif keys[pygame.K_d]:
+            player.move_right(PLAYER_VEL)
+        else:
+            player.x_vel = 0
+
+        if is_running and SFX_ON:
+            if run_sound.get_num_channels() == 0:
+                run_sound.play(loops=-1)
+        else: 
+            run_sound.stop()
 
     player.move(player.x_vel, 0)
     player.update()
@@ -284,10 +294,149 @@ def handle_move(player, objects, run_sound, sfx_on):
     player.update()
     handle_vertical_collision(player, objects, player.y_vel)
 
+def handle_enemy_physics(enemy, objects):
+    enemy.move(enemy.x_vel, 0)
+    enemy.update()
+    handle_enemy_horizontal_collision(enemy, objects, enemy.x_vel)
+    
+    enemy.move(0, enemy.y_vel)
+    enemy.update()
+    handle_enemy_vertical_collision(enemy, objects, enemy.y_vel)
+
 def draw_player(player): 
     player.draw(WINDOW)
 
 #END OF MAIN CHARACTER/PLAYER SPRITE AND MOVEMENT--------------------------------------------------------------------------
+
+#START OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
+class Slime(pygame.sprite.Sprite):
+    GRAVITY = 1
+    SPRITES = load_sprite_sheets("Enemies", "Slime", 150, 150, True)
+    ANIMATION_DELAY = 5
+
+    def __init__(self, x, y, width, height, patrol_distance=200):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, width, height)
+        self.hitbox = pygame.Rect(x, y, width, height)
+        
+        self.x_vel = 0
+        self.y_vel = 0
+        self.direction = "left"
+        self.animation_count = 0
+        self.fall_count = 0
+        self.move_timer = 0
+
+    def update(self):
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
+        self.hitbox.width = 60
+        self.hitbox.height = 40
+        self.hitbox.x = self.rect.centerx - (self.hitbox.width // 2)
+        y_offset = 0 
+        self.hitbox.y = self.rect.bottom - self.hitbox.height + y_offset
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+
+    def loop(self, fps, player):
+        self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
+        self.ai_behavior(player)
+        
+        if self.fall_count == 0 and not self.is_attacking:
+            self.x_vel = 0
+
+        self.fall_count += 1
+        self.update_sprite()
+        self.update()
+
+    def ai_behavior(self, player):
+        if self.fall_count == 0:
+            self.move_timer += 1
+            self.is_attacking = False
+
+        if self.move_timer > 4:
+                self.move_timer = 0
+                self.is_attacking = True
+                
+                self.y_vel = -5 
+                
+                direction = 1 if player.rect.x > self.rect.x else -1
+                self.x_vel = direction * 5
+                self.direction = "right" if direction == 1 else "left"
+
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.x_vel = 0
+    
+    def hit_head(self):
+        self.y_vel *= -1
+
+    def update_sprite(self):
+        sprite_sheet = "idle"
+        if self.y_vel < 0: sprite_sheet = "move"
+        elif self.x_vel != 0: sprite_sheet = "move"
+
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+        if sprite_sheet == "move":
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY)
+            if sprite_index >= len(sprites):
+                sprite_index = len(sprites) - 1
+        else:
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+
+    def draw(self, win, camera):
+        hitbox_screen_pos = camera.get_offset_position(self)
+
+        screen_x = hitbox_screen_pos.centerx - (self.sprite.get_width() // 2)
+        screen_y = hitbox_screen_pos.bottom - self.sprite.get_height()
+        
+        win.blit(self.sprite, (screen_x, screen_y))
+
+def handle_enemy_horizontal_collision(enemy, objects, dx):
+    if dx == 0:
+        return
+
+    for obj in objects:
+        if enemy.hitbox.colliderect(obj.rect):
+            offset_left = enemy.hitbox.x - enemy.rect.x
+            offset_right = enemy.rect.right - enemy.hitbox.right
+            if dx > 0:
+                enemy.hitbox.right = obj.rect.left
+                enemy.rect.right = enemy.hitbox.right + offset_right
+            elif dx < 0:
+                enemy.hitbox.left = obj.rect.right
+                enemy.rect.left = enemy.hitbox.left - offset_left
+            
+            enemy.x_vel = 0
+            break
+
+
+def handle_enemy_vertical_collision(enemy, objects, dy):
+    collided_objects = []
+
+    for obj in objects:
+        if enemy.hitbox.colliderect(obj.rect):
+            if dy > 0:
+                offset = enemy.hitbox.bottom - enemy.rect.bottom
+                enemy.rect.bottom = obj.rect.top - offset
+                enemy.hitbox.bottom = obj.rect.top
+                enemy.landed()
+                collided_objects.append(obj)
+            
+            elif dy < 0:
+                offset = enemy.hitbox.top - enemy.rect.top
+                enemy.rect.top = obj.rect.bottom - offset
+                enemy.hitbox.top = obj.rect.bottom
+                enemy.hit_head()
+                collided_objects.append(obj)
+    
+    return collided_objects
+
+#END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
 
 #MAP SETTING TEST (WILL CHANGE MAP AFTERWARDS) --------------------------------------------------------------------------
@@ -305,13 +454,13 @@ class Tile(pygame.sprite.Sprite):
         surface.blit(self.image, (self.rect.x, self.rect.y))
         
 class TileMap():
-    def __init__(self, test_level, spritesheet, scale = 1):
-        self.tile_size = 16 * scale
+    def __init__(self, level0, spritesheet, scale = 1):
+        self.tile_size = 64 * scale
         self.scale = scale
         self.start_x, self.start_y = 0, 0
         self.spritesheet = spritesheet
         self.map_w, self.map_h = 0, 0
-        self.tiles = self.load_tiles(test_level)
+        self.tiles = self.load_tiles(level0)
         self.map_surface = pygame.Surface((self.map_w, self.map_h))
         self.map_surface.set_colorkey((0, 0, 0))
         self.load_map()
@@ -323,16 +472,16 @@ class TileMap():
         for tile in self.tiles:
             tile.draw(self.map_surface)
     
-    def read_csv(self, test_level):
+    def read_csv(self, level0):
         map = []
-        with open(os.path.join(test_level)) as data:
+        with open(os.path.join(level0)) as data:
             data = csv.reader(data, delimiter=',')
             for row in data: map.append(list(row))
             return map
     
-    def load_tiles(self, test_level):
+    def load_tiles(self, level0):
         tiles = []
-        map = self.read_csv(test_level)
+        map = self.read_csv(level0)
         x, y = 0, 0
         for row in map:
             x = 0
@@ -340,11 +489,32 @@ class TileMap():
                 if tile == '-1':
                     self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
                 elif tile == '0':
-                    tiles.append(Tile('green.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '1':
-                    tiles.append(Tile('blue.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '2':
-                    tiles.append(Tile('brown.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                    tiles.append(Tile('lava2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '3':
+                    tiles.append(Tile('lava3.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '7':
+                    tiles.append(Tile('pipe01.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '4':
+                    tiles.append(Tile('pipe00.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '5':
+                    tiles.append(Tile('pipe0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '8':
+                    tiles.append(Tile('pipe1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '11':
+                    tiles.append(Tile('pipeturn.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '12':
+                    tiles.append(Tile('pipeturn0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '6':
+                    tiles.append(Tile('pipeturn1.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '13':
+                    tiles.append(Tile('pipeturn2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '10':
+                    tiles.append(Tile('pipe2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                
                 x += 1
             y += 1
         
@@ -547,9 +717,11 @@ def main():
             return pygame.image.load(path).convert_alpha()
     
     spritesheet = SpriteSheet()
-    tile_map = TileMap('assets/LevelMap/test_level.csv', spritesheet, scale = 3) #also scales up the map here
+    tile_map = TileMap('assets/LevelMap/level0.csv', spritesheet, scale = 1) #also scales up the map here
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
+
+    enemies = [Slime(2000, 4000, 150, 150)]
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -607,11 +779,37 @@ def main():
 
                 dialogue_box.update_dialogue()
 
+
+                for enemy in enemies:
+                    enemy.loop(FPS, player)
+                    handle_enemy_physics(enemy, tile_map.tiles)
+
+                    if player.melee_attack and player.hitbox.colliderect(enemy.hitbox):
+                        enemies.remove(enemy)
+                    
+                    elif player.hitbox.colliderect(enemy.hitbox):
+                        if player.health > 0 and player.knockback_timer == 0:
+                            player_initial_health = player.health
+                            player.health -= 5
+                            player.y_vel = -5
+                            if player.rect.x < enemy.rect.x:
+                                player.knockback_vel = -15
+                            else:
+                                player.knockback_vel = 15
+
+                            player.knockback_timer = 10
+
+                            print(f"OUCH! You initially had {player_initial_health}, now you have {player.health}!")
+
                 camera.follow_player(player)
 
                 for tile in tile_map.tiles:
                     tile_screen_position = camera.get_offset_position(tile)
                     WINDOW.blit(tile.image, tile_screen_position)
+
+                for enemy in enemies:
+                    enemy_pos = camera.get_offset_position(enemy)
+                    WINDOW.blit(enemy.sprite, enemy_pos)
                 
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
@@ -623,9 +821,18 @@ def main():
                     player.hitbox.width,
                     player.hitbox.height
                 ), 2)
+
+                # ENEMY HITBOX
+                enemy_rect = camera.get_offset_position(enemy)    
+                hx = enemy.hitbox.x + camera.offset_x
+                hy = enemy.hitbox.y + camera.offset_y
+                pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
                 """
                 #END OF CHECK HITBOX HERE#========================================================================
-            
+
+                for enemy in enemies:
+                    enemy.draw(WINDOW, camera)
+
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
                 dialogue_box.draw_dialogue_box(WINDOW, WIDTH, HEIGHT)
