@@ -39,6 +39,9 @@ PURPLE = (150, 0, 200)
 RED = (255, 0, 0)
 ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
+GOLD = (255, 215, 0)
+DARK_GREY = (40, 40, 40)
+
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -48,6 +51,17 @@ PAUSE_ICON = pygame.transform.scale(PAUSE_ICON, (PAUSE_BUTTON_SIDE, PAUSE_BUTTON
 
 # health bar 
 BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 20
+
+# dialogue box constants
+DIALOGUE_BOX_HEIGHT = 150
+DIALOGUE_BOX_WIDTH = 400
+DIALOGUE_BOX_MARGIN = 20
+DIALOGUE_TEXT_FONT = pygame.font.SysFont("comicsans", 24)
+DIALOGUE_TITLE_DONT = pygame.font.SysFont("comicsans",30, bold=True)
+DIALOGUE_TEXT_COLOUR = BLACK
+DIALOGUE_NAME_COLOUR = GOLD
+DIALOGUE_BOX_COLOUR = WHITE
+DIALOGUE_BORDER_COLOUR = DARK_GREY
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 7
@@ -544,6 +558,7 @@ def draw_pause_button(mouse_pos):
 
     return button
 
+# json saving part -----------------------------------------------------------
 def save_game(player):
     save_data = {
         "player_x": player.rect.x,
@@ -565,6 +580,7 @@ def load_game(player):
 def if_save_exists():
     return os.path.exists('savegame.json')
 
+# player camera follow -------------------------------------------------------------
 class Camera:
     def __init__(self, map_width, map_height):
         self.offset_x = 0
@@ -579,6 +595,7 @@ class Camera:
         self.offset_x = -player.rect.centerx + WIDTH//2 
         self.offset_y = -player.rect.centery + HEIGHT//2
 
+# bgm and sfx control part ------------------------------------------------------
 def toggle_bgm():
     global MUSIC_ON
     if MUSIC_ON:
@@ -608,8 +625,80 @@ def draw_health_bar(x, y, health, max_health):
     pygame.draw.rect(WINDOW, GREEN, (x, y, current_width, BAR_HEIGHT))
     pygame.draw.rect(WINDOW, BLACK, (x, y, BAR_WIDTH, BAR_HEIGHT),1 )
 
+#def dialogue part -------------------------------------------------------
+class DialogueBox:
+    def __init__(self):
+        self.active = False
+        self.current_text = ""
+        self.full_text = ""
+        self.speaker = ""
+        self.character_index = 0
+        self.typing_speed = 2
+        self.finished = False
+
+    def start_dialogue(self, speaker, text):
+        self.active = True
+        self.speaker = speaker
+        self.current_text = ""
+        self.full_text = text
+        self.character_index = 0
+        self.finished = False 
+
+    def update_dialogue(self):
+        if self.active and not self.finished:
+            if self.character_index < len(self.full_text):
+                self.character_index += self.typing_speed
+                self.current_text = self.full_text[:self.character_index]
+            else: 
+                self.finished = True
+                self.current_text = self.full_text
+                
+    def skip_dialogue(self):
+        if self.active:
+            self.current_text = self.full_text
+            self.character_index = len(self.full_text)
+            self.finished = True
+
+    def close_dialogue(self):
+        self.active = False
+        self.current_text = ""
+        self.full_text = ""
+        self.speaker = ""
+        self.character_index = 0
+        self.finished = False
+
+    def draw_dialogue_box(self, surface, width, height):
+        if not self.active:
+            return
+        
+        box_width = DIALOGUE_BOX_WIDTH
+        box_height = DIALOGUE_BOX_HEIGHT
+        box_x = DIALOGUE_BOX_MARGIN
+        box_y = HEIGHT - DIALOGUE_BOX_HEIGHT - DIALOGUE_BOX_MARGIN
+        
+        pygame.draw.rect(WINDOW, DIALOGUE_BOX_COLOUR, (box_x, box_y, box_width, box_height))
+        pygame.draw.rect(WINDOW, DIALOGUE_BORDER_COLOUR, (box_x, box_y, box_width, box_height), 3 )
+
+        if self.speaker:
+            name_surface = DIALOGUE_TEXT_FONT.render(self.speaker, True, DIALOGUE_TEXT_COLOUR)
+            surface.blit(name_surface, (box_x + 15, box_y + 10))
+            text_start_y = box_y + 50
+        else:
+            text_start_y = box_y + 10
+
+        text_surface = DIALOGUE_TEXT_FONT.render(self.current_text, True, DIALOGUE_TEXT_COLOUR)
+        surface.blit(text_surface, (box_x + 15, text_start_y))
+
+        if self.finished:
+            continue_text = DIALOGUE_TEXT_FONT.render("Press spacebar to continue...", True, DIALOGUE_TEXT_COLOUR)
+            continue_x = box_x + box_width - continue_text.get_width() - 15
+            continue_y = box_y + box_height - continue_text.get_width() - 10
+
+# ---------------------------------------------------------------------
+
 def main():
     player = Player(100, 100, 50, 50)
+    dialogue_box = DialogueBox()
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
 
@@ -688,6 +777,9 @@ def main():
                 player.loop(FPS)
                 handle_move(player, tile_map.tiles, run_sound, SFX_ON)
 
+                dialogue_box.update_dialogue()
+
+
                 for enemy in enemies:
                     enemy.loop(FPS, player)
                     handle_enemy_physics(enemy, tile_map.tiles)
@@ -743,6 +835,7 @@ def main():
 
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
+                dialogue_box.draw_dialogue_box(WINDOW, WIDTH, HEIGHT)
 
             elif pause == True:
                 WINDOW.fill(WHITE)
@@ -797,6 +890,7 @@ def main():
                             show_new_game_warning = False
                             page = 1
                             pause = False
+                            dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
                         if NO_BUTTON.collidepoint(mouse_pos):
                             show_new_game_warning = False
                     else:
@@ -808,6 +902,7 @@ def main():
                                 player = Player(tile_map.start_x, tile_map.start_y, 50, 50)
                                 page = 1
                                 pause = False
+                                dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
                         if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                             if if_save_exists():
                                 load_game(player)
@@ -865,9 +960,16 @@ def main():
                         page = 0
                     elif page == 0:
                         run = False
-                    
                 if event.key == pygame.K_F11:
                     WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                if event.key == pygame.K_SPACE:
+                    if dialogue_box.active:
+                        if dialogue_box.finished:
+                            dialogue_box.close_dialogue()
+                        else: 
+                            dialogue_box.skip_dialogue()
+                    else: 
+                        player.melee()
 
 
     pygame.quit() 
