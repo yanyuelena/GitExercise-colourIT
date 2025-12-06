@@ -30,7 +30,7 @@ THIRD_BUTTON_Y = SECOND_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 FOURTH_BUTTON_Y = THIRD_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 FIFTH_BUTTON_Y = FOURTH_BUTTON_Y + BUTTON_HEIGHT + BUTTON_SPACING
 
-#colours constants
+#colour constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREY = (128, 128, 128)
@@ -41,7 +41,7 @@ ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
 GOLD = (255, 215, 0)
 DARK_GREY = (40, 40, 40)
-
+RED = (255, 0, 0)
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -57,7 +57,7 @@ DIALOGUE_BOX_HEIGHT = 150
 DIALOGUE_BOX_WIDTH = 1000
 DIALOGUE_BOX_MARGIN = 20
 DIALOGUE_TEXT_FONT = pygame.font.SysFont("comicsans", 24)
-DIALOGUE_TITLE_DONT = pygame.font.SysFont("comicsans",30, bold=True)
+DIALOGUE_TITLE_FONT = pygame.font.SysFont("comicsans",30, bold=True)
 DIALOGUE_TEXT_COLOUR = BLACK
 DIALOGUE_NAME_COLOUR = GOLD
 DIALOGUE_BOX_COLOUR = WHITE
@@ -95,7 +95,7 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
 
 #PLAYER SPRITTE
 class Player(pygame.sprite.Sprite):
-    COLOR = (255, 0, 0)
+    COLOR = RED
     GRAVITY = 1
     SPRITES = load_sprite_sheets("MainCharacter", "Sketch", 150, 150, True)
     ANIMATION_DELAY = 5
@@ -886,7 +886,9 @@ def main():
                         if YES_BUTTON.collidepoint(mouse_pos):
                             if os.path.exists('savegame.json'):
                                 os.remove('savegame.json')
-                            player = Player(tile_map.start_x, tile_map.start_y, 50, 50)
+                            player.rect.x = tile_map.start_x
+                            player.rect.y = tile_map.start_y
+                            player.update()
                             show_new_game_warning = False
                             page = 1
                             pause = False
@@ -899,7 +901,9 @@ def main():
                             if if_save_exists():
                                 show_new_game_warning = True
                             else: 
-                                player = Player(tile_map.start_x, tile_map.start_y, 50, 50)
+                                player.rect.x = tile_map.start_x
+                                player.rect.y = tile_map.start_y
+                                player.update()
                                 page = 1
                                 pause = False
                                 dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
