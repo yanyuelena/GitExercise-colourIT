@@ -41,7 +41,6 @@ ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
 GOLD = (255, 215, 0)
 DARK_GREY = (40, 40, 40)
-RED = (255, 0, 0)
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -694,7 +693,11 @@ class DialogueBox:
             continue_x = box_x + box_width - continue_text.get_width() - 15
             continue_y = box_y + box_height - continue_text.get_width() - 10
 
-# ---------------------------------------------------------------------
+# game over screen  ---------------------------------------------------------------------
+
+
+
+# ---------------------------------------------------------------------------------
 
 def main():
     player = Player(100, 100, 50, 50)
@@ -706,6 +709,7 @@ def main():
     pause = False
     show_new_game_warning = False
 
+    # for dialogue box 
     message = ""
     message_timer = 0
     MESSAGE_DURATION = FPS*2
@@ -889,6 +893,7 @@ def main():
                             player.rect.x = tile_map.start_x
                             player.rect.y = tile_map.start_y
                             player.update()
+                            player.health = player.max_health
                             show_new_game_warning = False
                             page = 1
                             pause = False
@@ -904,6 +909,7 @@ def main():
                                 player.rect.x = tile_map.start_x
                                 player.rect.y = tile_map.start_y
                                 player.update()
+                                player.health = player.max_health 
                                 page = 1
                                 pause = False
                                 dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
