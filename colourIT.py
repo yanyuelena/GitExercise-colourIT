@@ -123,7 +123,7 @@ class Player(pygame.sprite.Sprite):
 
 #MOVEMENT FUNC
     def jump(self):
-        self.y_vel = -self.GRAVITY * 8
+        self.y_vel = -self.GRAVITY * 14
         self.jump_count += 1
         self.fall_count = 0
         if not self.melee_attack:
