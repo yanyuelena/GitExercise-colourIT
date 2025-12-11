@@ -790,7 +790,7 @@ def main():
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
-                            player.health -= 100
+                            player.health -= 50
                             player.y_vel = -5
                             if player.rect.x < enemy.rect.x:
                                 player.knockback_vel = -15
