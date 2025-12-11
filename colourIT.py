@@ -693,11 +693,6 @@ class DialogueBox:
             continue_x = box_x + box_width - continue_text.get_width() - 15
             continue_y = box_y + box_height - continue_text.get_width() - 10
 
-# game over screen  ---------------------------------------------------------------------
-
-
-
-# ---------------------------------------------------------------------------------
 
 def main():
     player = Player(100, 100, 50, 50)
@@ -784,6 +779,7 @@ def main():
                 dialogue_box.update_dialogue()
 
 
+
                 for enemy in enemies:
                     enemy.loop(FPS, player)
                     handle_enemy_physics(enemy, tile_map.tiles)
@@ -794,7 +790,7 @@ def main():
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
-                            player.health -= 5
+                            player.health -= 100
                             player.y_vel = -5
                             if player.rect.x < enemy.rect.x:
                                 player.knockback_vel = -15
@@ -804,6 +800,10 @@ def main():
                             player.knockback_timer = 10
 
                             print(f"OUCH! You initially had {player_initial_health}, now you have {player.health}!")
+                            
+                            #check if player dies
+                            if player.health <= 0:
+                                page = 4
 
                 camera.follow_player(player)
 
@@ -874,6 +874,14 @@ def main():
             sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
             SFX_BUTTON = draw_button(sfx_text, BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+
+        elif page == 4: # game over page 
+            WINDOW.fill(DARK_GREY)
+            game_over_text = TITLE_FONT.render("HAHA! GAME OVER!", 1, RED)
+            WINDOW.blit(game_over_text, ((WIDTH//2 - game_over_text.get_width()//2, TITLE_Y)))
+
+            # RESTART_BUTTON = draw_button("Restart Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos) (i dw put first i wait for the checkpoint code)
+            MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
         if message_timer > 0:
             draw_message(message)
@@ -950,6 +958,10 @@ def main():
                         toggle_sfx()
                     if MENU_BUTTON.collidepoint(mouse_pos):
                         page = 0
+                elif page == 4:
+                    if MENU_BUTTON.collidepoint(mouse_pos):
+                        page = 0
+                        
 
             if event.type == pygame.KEYDOWN:
                 if page == 1 and not pause:
@@ -980,6 +992,7 @@ def main():
                             dialogue_box.skip_dialogue()
                     else: 
                         player.melee()
+
 
 
     pygame.quit() 
