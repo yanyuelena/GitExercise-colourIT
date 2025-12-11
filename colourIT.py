@@ -107,7 +107,9 @@ class Player(pygame.sprite.Sprite):
         self.animation_count = 0
         self.fall_count = 0
         self.jump_count = 0
+        self.max_jumps = 1
         self.melee_attack = False
+        self.hit_enemies = []
 
         self.hitbox = pygame.Rect(x + 55, y + 40, 40, 110)
 
@@ -123,7 +125,7 @@ class Player(pygame.sprite.Sprite):
 
 #MOVEMENT FUNC
     def jump(self):
-        self.y_vel = -self.GRAVITY * 8
+        self.y_vel = -self.GRAVITY * 16.5
         self.jump_count += 1
         self.fall_count = 0
         if not self.melee_attack:
@@ -136,7 +138,8 @@ class Player(pygame.sprite.Sprite):
     def move_left(self, vel):
         self.x_vel = -vel
         if self.direction != "left":
-            self.direction = "left"
+            if not self.melee_attack:
+                self.direction = "left"
 
             if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
@@ -144,7 +147,8 @@ class Player(pygame.sprite.Sprite):
     def move_right(self, vel):
         self.x_vel = vel
         if self.direction != "right":
-            self.direction = "right"
+            if not self.melee_attack:
+                self.direction = "right"
 
             if not self.melee_attack and self.jump_count == 0:
                 self.animation_count = 0
@@ -153,6 +157,16 @@ class Player(pygame.sprite.Sprite):
         if not self.melee_attack:
             self.melee_attack = True
             self.animation_count = 0
+            self.hit_enemies.clear()
+
+    def create_attack_box(self):
+        range_width = 40
+        range_height = self.hitbox.height
+
+        if self.direction == "right":
+            return pygame.Rect(self.hitbox.right, self.hitbox.y, range_width, range_height)
+        else:
+            return pygame.Rect(self.hitbox.left - range_width, self.hitbox.y, range_width, range_height)
 
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
@@ -313,7 +327,7 @@ class Slime(pygame.sprite.Sprite):
     SPRITES = load_sprite_sheets("Enemies", "Slime", 150, 150, True)
     ANIMATION_DELAY = 5
 
-    def __init__(self, x, y, width, height, patrol_distance=200):
+    def __init__(self, x, y, width, height, patrol_distance=300):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
         self.hitbox = pygame.Rect(x, y, width, height)
@@ -324,6 +338,8 @@ class Slime(pygame.sprite.Sprite):
         self.animation_count = 0
         self.fall_count = 0
         self.move_timer = 0
+        self.detection_range = patrol_distance
+        self.health = 3
 
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
@@ -350,17 +366,25 @@ class Slime(pygame.sprite.Sprite):
 
     def ai_behavior(self, player):
         if self.fall_count == 0:
-            self.move_timer += 1
+            dx = self.rect.centerx - player.rect.centerx
+            dy = self.rect.centery - player.rect.centery
+            distance_to_player = math.hypot(dx, dy) #for circular range detection
+            
+            if distance_to_player < self.detection_range:
+                self.move_timer += 1
+            else:
+                self.move_timer = 0
+
             self.is_attacking = False
 
-        if self.move_timer > 4:
+        if self.move_timer > 2:
                 self.move_timer = 0
                 self.is_attacking = True
                 
                 self.y_vel = -5 
                 
                 direction = 1 if player.rect.x > self.rect.x else -1
-                self.x_vel = direction * 5
+                self.x_vel = direction * 6
                 self.direction = "right" if direction == 1 else "left"
 
     def landed(self):
@@ -394,6 +418,13 @@ class Slime(pygame.sprite.Sprite):
         screen_y = hitbox_screen_pos.bottom - self.sprite.get_height()
         
         win.blit(self.sprite, (screen_x, screen_y))
+        #ATTACK RANGE SLIME
+        """
+        circle_center_x = self.rect.centerx + camera.offset_x
+        circle_center_y = self.rect.centery + camera.offset_y
+        
+        pygame.draw.circle(win, (0, 0, 255), (circle_center_x, circle_center_y), self.detection_range, 1)
+        """
 
 def handle_enemy_horizontal_collision(enemy, objects, dx):
     if dx == 0:
@@ -699,7 +730,7 @@ def main():
     dialogue_box = DialogueBox()
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
-
+    
     page = 0
     pause = False
     show_new_game_warning = False
@@ -720,7 +751,15 @@ def main():
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
-    enemies = [Slime(2000, 4000, 150, 150)]
+    enemies = [
+        Slime(1050, 1650, 150, 150),
+        Slime(2810, 1840, 150, 150),
+        Slime(4450, 880, 150, 150),
+        Slime(4350, 880, 150, 150),
+        Slime(2900, 620, 150, 150),
+        Slime(1340, 370, 150, 150),
+        Slime(4230, 2990, 150, 150)
+        ]
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -783,9 +822,37 @@ def main():
                 for enemy in enemies:
                     enemy.loop(FPS, player)
                     handle_enemy_physics(enemy, tile_map.tiles)
+                    #print player coordinates
+                    #print(f"Player: {player.rect.x}, {player.rect.y}")
 
-                    if player.melee_attack and player.hitbox.colliderect(enemy.hitbox):
-                        enemies.remove(enemy)
+
+                    if player.melee_attack:
+                        MELEE_DMG_START = 0
+                        MELEE_DMG_END = 5
+                        if MELEE_DMG_START <= player.animation_count < MELEE_DMG_END:
+                            attack_box = player.create_attack_box()
+                            #START OF CHECK PLAYER ATTACK BOX HERE#======================================================================
+                            """
+                            attack_rect_screen = pygame.Rect(
+                            attack_box.x + camera.offset_x,
+                            attack_box.y + camera.offset_y,
+                            attack_box.width,
+                            attack_box.height
+                            )
+                            pygame.draw.rect(WINDOW, (0, 0, 255), attack_rect_screen, 2)
+                            """
+                            #END OF CHECK PLAYER ATTACK BOX HERE#======================================================================
+                            if attack_box.colliderect(enemy.hitbox):
+                                if enemy not in player.hit_enemies:
+                                    player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
+                                    enemy.health -= 1
+                                    if player.rect.centerx < enemy.rect.centerx:
+                                        enemy.x_vel = 5
+                                    else:
+                                        enemy.x_vel = -5
+
+                                    if enemy.health <= 0:
+                                        enemies.remove(enemy)
                     
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
@@ -817,25 +884,28 @@ def main():
                 
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
-                #START OF CHECK HITBOX HERE#======================================================================
+                #START OF CHECK PLAYER HITBOX HERE#======================================================================
                 """
+                #PLAYER HITBOX
                 pygame.draw.rect(WINDOW, (255, 0, 0), pygame.Rect(
                     player.hitbox.x + camera.offset_x,
                     player.hitbox.y + camera.offset_y,
                     player.hitbox.width,
                     player.hitbox.height
                 ), 2)
-
-                # ENEMY HITBOX
-                enemy_rect = camera.get_offset_position(enemy)    
-                hx = enemy.hitbox.x + camera.offset_x
-                hy = enemy.hitbox.y + camera.offset_y
-                pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
                 """
-                #END OF CHECK HITBOX HERE#========================================================================
+                #END OF CHECK PLAYER HITBOX HERE#========================================================================
 
                 for enemy in enemies:
                     enemy.draw(WINDOW, camera)
+                    #START OF CHECK ENEMY HITBOX HERE#========================================================================
+                    """
+                    enemy_rect = camera.get_offset_position(enemy)    
+                    hx = enemy.hitbox.x + camera.offset_x
+                    hy = enemy.hitbox.y + camera.offset_y
+                    pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
+                    """
+                    #END OF CHECK ENEMY HITBOX HERE#========================================================================
 
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
@@ -969,7 +1039,7 @@ def main():
                         player.melee()
                         if SFX_ON:
                             attack_sound.play()
-                    elif event.key == pygame.K_w and player.jump_count < 2:
+                    elif event.key == pygame.K_w and player.jump_count < player.max_jumps:
                         player.jump()
                         if SFX_ON:
                             jump_sound.play()
