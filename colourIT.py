@@ -497,7 +497,7 @@ class TileMap():
         
     def draw_map(self, surface):
         surface.blit(self.map_surface, (0, 0))
-        
+     
     def load_map(self):
         for tile in self.tiles:
             tile.draw(self.map_surface)
@@ -552,6 +552,33 @@ class TileMap():
         return tiles 
 #MAP SETTING TEST END ---------------------------------------------------------------------------------------------------
 
+# MAP INDICATOR / MINI MAP ----------------------------------------------------------------------------------------------
+
+class MiniMap():
+    def draw_minimap(self, surface, player = None, size = 200, padding = 10):
+        if getattr(self, 'map_w', 0) == 0 or getattr(self, 'map_h', 0) == 0:
+            return
+    
+        mini_w, mini_h = size, size
+        mini = pygame.transform.scale(self.map_surface, (mini_w, mini_h))
+
+        x = WIDTH - mini_w - padding
+        y = HEIGHT - mini_h - padding
+
+        pygame.draw.rect(surface, BLACK, (x - 2, y - 2, mini_w + 4, mini_h + 4))
+        
+        surface.blit(mini, (x, y))
+
+        if player is not None and self.map_w > 0 and self.map_h > 0:
+            lightblue = (173, 216, 230)
+            # player position
+            px = int ((player.rect.centerx / self.map_w) * mini_w)
+            py = int ((player.rect.centery / self.map_h) * mini_h) 
+            markersize = max(8, min(6, mini_w // 50))
+            pygame.draw.rect(surface, lightblue, (x + px - markersize//2, y + py - markersize//2, markersize, markersize))
+
+# MINI MAP END --------------------------------------------------------------------------------------------------------------
+   
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -754,6 +781,9 @@ def main():
     spritesheet = SpriteSheet()
     tile_map = TileMap('assets/LevelMap/level0.csv', spritesheet, scale = 1) #also scales up the map here
 
+    # mini map indicator
+    MiniMap.draw_minimap(tile_map, pygame.display.get_surface(), player, size=200, padding=10)
+
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
     enemies = [
@@ -906,6 +936,9 @@ def main():
                     pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
                     """
                     #END OF CHECK ENEMY HITBOX HERE#========================================================================
+
+                # draw minimap in bottom-right
+                MiniMap.draw_minimap(tile_map, WINDOW, player, size=200, padding=10)
 
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
