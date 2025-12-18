@@ -62,6 +62,10 @@ DIALOGUE_NAME_COLOUR = GOLD
 DIALOGUE_BOX_COLOUR = WHITE
 DIALOGUE_BORDER_COLOUR = DARK_GREY
 
+# inventory icon constants
+INVENTORY_BUTTON_SIDE = 100
+INVENTORY_BUTTON_MARGIN = 20
+
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
 PLAYER_VEL = 7
 
@@ -122,6 +126,8 @@ class Player(pygame.sprite.Sprite):
         #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
+        #for collection system
+        self.collection = Collection() 
 
 #MOVEMENT FUNC
     def jump(self):
@@ -751,6 +757,85 @@ class DialogueBox:
             continue_x = box_x + box_width - continue_text.get_width() - 15
             continue_y = box_y + box_height - continue_text.get_width() - 10
 
+class Collection:
+    def __init__(self):
+        self.items = {
+            "Red Bucket": False,
+            "Blue Bucket": False,
+            "Green Bucket": False,
+            "Double Jump": False,
+        }
+        self.is_open = False
+    
+    def collect_item(self, item_name):
+        if item_name in self.items:
+            if self.items[item_name] == False:  
+                self.items[item_name] = True   
+                return True  
+            else:
+                return False  
+    
+    def has_item(self, item_name):
+        return self.items.get(item_name, False)
+    
+    def toggle_inventory(self):
+        self.is_open = not self.is_open
+
+    def draw_inventory_screen(self, surface, width, height):
+        if not self.is_open:
+            return  
+        
+        overlay = pygame.Surface((width, height))
+        overlay.fill(BLACK)
+        overlay.set_alpha(200) 
+        surface.blit(overlay, (0, 0))
+        
+        # Title
+        title_font = pygame.font.SysFont("comicsans", 80)
+        title = title_font.render("Inventory", True, WHITE)
+        surface.blit(title, (width // 2 - title.get_width() // 2, 50))
+        
+        # Show each item
+        item_font = pygame.font.SysFont("comicsans", 40)
+        y = 200 
+        
+        for item_name, have_it in self.items.items():
+            if have_it:
+                color = GREEN
+                symbol = " / " 
+            else:
+                color = GREY
+                symbol = " X "
+            
+            text = item_font.render(symbol + item_name, True, color)
+            surface.blit(text, (width // 2 - text.get_width() // 2, y))
+            y += 70 
+        
+        close_font = pygame.font.SysFont("comicsans", 30)
+        close_text = close_font.render("Press I to close and open inventory~", True, WHITE)
+        surface.blit(close_text, (width // 2 - close_text.get_width() // 2, height - 80))
+    
+def draw_inventory_button(mouse_pos):
+    button_x = WIDTH - INVENTORY_BUTTON_SIDE - INVENTORY_BUTTON_MARGIN
+    button_y = PAUSE_BUTTON_MARGIN + PAUSE_BUTTON_SIDE + INVENTORY_BUTTON_MARGIN
+    
+    button = pygame.Rect(button_x, button_y, INVENTORY_BUTTON_SIDE, INVENTORY_BUTTON_SIDE)
+    
+    if button.collidepoint(mouse_pos):
+        pygame.draw.rect(WINDOW, LIGHT_GREY, button)
+    else:
+        pygame.draw.rect(WINDOW, WHITE, button)
+    
+    pygame.draw.rect(WINDOW, BLACK, button, 3)
+    
+    inv_font = pygame.font.SysFont("comicsans", 30)
+    inv_text = inv_font.render("INV", True, BLACK)
+    text_x = button_x + (INVENTORY_BUTTON_SIDE - inv_text.get_width()) // 2
+    text_y = button_y + (INVENTORY_BUTTON_SIDE - inv_text.get_height()) // 2
+    WINDOW.blit(inv_text, (text_x, text_y))
+    
+    return button
+
 
 def main():
     player = Player(100, 100, 50, 50)
@@ -796,11 +881,11 @@ def main():
     pygame.mixer.music.play(-1)
     #sound effects 
     attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
-    attack_sound.set_volume(0.5)
+    attack_sound.set_volume(0.2)
     jump_sound = pygame.mixer.Sound('assets/sounds/jump.flac')
     jump_sound.set_volume(1)
     run_sound = pygame.mixer.Sound('assets/sounds/run.wav')
-    run_sound.set_volume(1)
+    run_sound.set_volume(2)
 
     run = True
     while run: 
@@ -943,6 +1028,8 @@ def main():
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
                 dialogue_box.draw_dialogue_box(WINDOW, WIDTH, HEIGHT)
+                player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
+                INVENTORY_BUTTON = draw_inventory_button(mouse_pos) 
 
             elif pause == True:
                 WINDOW.fill(WHITE)
@@ -1041,6 +1128,8 @@ def main():
                     if pause == False:
                         if PAUSE_BUTTON.collidepoint(mouse_pos):
                             pause = True
+                        if INVENTORY_BUTTON.collidepoint(mouse_pos):  
+                            player.collection.toggle_inventory()
                     elif pause == True:
                         if RESUME_BUTTON.collidepoint(mouse_pos):
                             pause = False
@@ -1072,6 +1161,8 @@ def main():
                         player.melee()
                         if SFX_ON:
                             attack_sound.play()
+                    if event.key == pygame.K_i:  
+                        player.collection.toggle_inventory()
                     elif event.key == pygame.K_w and player.jump_count < player.max_jumps:
                         player.jump()
                         if SFX_ON:
