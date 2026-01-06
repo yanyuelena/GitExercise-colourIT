@@ -867,13 +867,13 @@ def main():
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
     enemies = [
-        Slime(1050, 1650, 150, 150),
-        Slime(2810, 1840, 150, 150),
-        Slime(4450, 880, 150, 150),
-        Slime(4350, 880, 150, 150),
-        Slime(2900, 620, 150, 150),
-        Slime(1340, 370, 150, 150),
-        Slime(4230, 2990, 150, 150)
+        Slime(1950, 1070, 150, 150),    #First Slime you see
+        Slime(4830, 3630, 150, 150),    #Front of tunnel
+        Slime(4850, 1520, 150, 150),    #Platform Slime Front
+        Slime(5050, 1520, 150, 150),    #Platform Slime Behind
+        Slime(3950, 1130, 150, 150),    #Double Jump Guard Slime
+        Slime(1340, 2280, 150, 150),    #Slime below Spawn
+        Slime(2950, 2480, 150, 150)     #Before jumping up to platform
         ]
 
     #main bgm
@@ -895,7 +895,6 @@ def main():
 
         if message_timer > 0:
             message_timer -= 1
-
         if page == 0: #main menu page 
             WINDOW.fill(GREY)
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
@@ -972,7 +971,7 @@ def main():
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
-                            player.health -= 50
+                            player.health -= 10
                             player.y_vel = -5
                             if player.rect.x < enemy.rect.x:
                                 player.knockback_vel = -15
@@ -1104,8 +1103,8 @@ def main():
                             if if_save_exists():
                                 show_new_game_warning = True
                             else: 
-                                player.rect.x = tile_map.start_x
-                                player.rect.y = tile_map.start_y
+                                player.rect.x = 980
+                                player.rect.y = 220
                                 player.update()
                                 player.health = player.max_health 
                                 page = 1
