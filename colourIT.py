@@ -472,6 +472,202 @@ def handle_enemy_vertical_collision(enemy, objects, dy):
     
     return collided_objects
 
+class Tomato(Slime):
+    SPRITES = load_sprite_sheets("Enemies", "Tomato", 150, 150, True)
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        self.rect = pygame.Rect(x, y, width, height)
+        self.health = 100
+        self.hurt_timer = 0
+        self.invincibility_timer = 0
+        self.projectiles = []
+        
+        self.state = "idle"
+        self.state_timer = 0
+        self.action_duration = 60
+        self.speed = 5
+        
+        self.target_player = None
+        self.last_action = "idle"
+
+    def update(self):
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
+        
+        self.hitbox.width = 100 
+        self.hitbox.height = 100
+        
+        self.hitbox.x = self.rect.centerx - (self.hitbox.width // 2)
+        self.hitbox.y = self.rect.bottom - self.hitbox.height
+
+    def loop(self, fps, player):
+        for p in self.projectiles:
+            p.move()
+            if p.rect.x < -2000 or p.rect.x > 5000 or p.timer > 120: 
+                self.projectiles.remove(p)
+
+        self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
+        self.fall_count += 1
+
+        if self.invincibility_timer > 0:
+            self.invincibility_timer -= 1
+
+        if self.hurt_timer > 0:
+            self.x_vel = 0
+
+        else:
+            dx = player.rect.centerx - self.rect.centerx
+            dy = player.rect.centery - self.rect.centery
+            distance = math.hypot(dx, dy)
+            self.target_player = player
+
+            if self.state != "attack":
+                if dx > 0: self.direction = "right"
+                else: self.direction = "left"
+
+            if distance < 800: 
+                self.state_timer += 1
+                
+                if self.state == "idle":
+                    self.x_vel = 0
+                    if self.state_timer > self.action_duration:
+                        self.pick_new_state()
+
+                elif self.state == "move":
+                    if self.direction == "right": self.x_vel = self.speed
+                    else: self.x_vel = -self.speed
+                    
+                    if self.state_timer > self.action_duration:
+                        self.state = "idle"
+                        self.state_timer = 0
+                        self.action_duration = random.randint(15, 50)
+
+                elif self.state == "attack":
+                    self.x_vel = 0
+                    pass 
+
+            else:
+                self.state = "idle"
+                self.x_vel = 0
+
+        self.update_sprite()
+        self.update()
+
+    def pick_new_state(self):
+        self.state_timer = 0
+
+        if self.last_action == "move":
+            self.state = "attack"
+        else:
+            if random.random() < 0.45:
+                self.state = "move"
+            else:
+                self.state = "attack"
+        
+        if self.state == "move":
+            self.action_duration = random.randint(15, 90)
+            self.last_action = "move"
+        elif self.state == "attack":
+            self.animation_count = 0 
+            self.last_action = "attack"
+
+    def shoot(self):
+        if self.target_player:
+            bullet_speed = 20
+            if self.health <= 50:
+                bullet_speed = 45
+
+            bullet = Projectile(self.rect.centerx, self.rect.centery, 
+                            self.target_player.rect.centerx, self.target_player.rect.centery, speed=bullet_speed)
+            self.projectiles.append(bullet)
+
+    def update_sprite(self):
+        sprite_sheet = "idle"
+
+        if self.hurt_timer > 0:
+            sprite_sheet = "hurt"
+            self.hurt_timer -= 1
+            shake_amount = 5
+            offset_x = random.randint(-shake_amount, shake_amount)
+            offset_y = random.randint(-shake_amount, shake_amount)
+            self.rect.x += offset_x
+            self.rect.y += offset_y
+        elif self.state == "move": 
+            sprite_sheet = "move"
+        elif self.state == "attack": 
+            sprite_sheet = "attack"
+        
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+
+        if sprite_sheet == "hurt":
+            sprite_index = 0
+
+        if self.state == "move" or self.state == "idle":
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+
+            
+        elif self.state == "attack":
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY)
+            
+            if sprite_index == len(sprites) - 1 and self.animation_count % self.ANIMATION_DELAY == 0:
+                 self.shoot()
+            
+            if sprite_index >= len(sprites):
+                self.state = "idle"
+                self.state_timer = 0
+                self.action_duration = random.randint(30, 60)
+                sprite_index = 0
+            
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+
+    def draw(self, win, camera):
+        draw_body = True
+        if self.invincibility_timer > 0:
+            if self.invincibility_timer % 10 < 5: 
+                draw_body = False
+
+        if draw_body:
+            super().draw(win, camera)
+        
+        for p in self.projectiles:
+            p.draw(win, camera)
+
+class Projectile(pygame.sprite.Sprite):
+    def __init__(self, x, y, target_x, target_y, speed):
+        super().__init__()
+        self.rect = pygame.Rect(x, y, 20, 20)
+        self.color = (255, 0, 0)
+        self.timer = 0
+        self.deflected = False
+        
+        dx = target_x - x
+        dy = target_y - y
+        angle = math.atan2(dy, dx)
+        
+        self.x_vel = math.cos(angle) * speed
+        self.y_vel = math.sin(angle) * speed
+    
+    def deflect(self):
+        self.x_vel *= -1.5
+        self.y_vel *= -1.5
+        
+        self.color = (0, 255, 0)
+        
+        self.timer = 0 
+        self.deflected = True
+        
+    def move(self):
+        self.rect.x += self.x_vel
+        self.rect.y += self.y_vel
+        self.timer += 1
+        
+    def draw(self, win, camera):
+        screen_x = self.rect.x + camera.offset_x
+        screen_y = self.rect.y + camera.offset_y
+        pygame.draw.rect(win, self.color, (screen_x, screen_y, self.rect.width, self.rect.height))
+
 #END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
 
@@ -866,6 +1062,7 @@ def main():
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
+    bossRED = Tomato(2853, 4500, 150, 150)
     enemies = [
         Slime(1950, 1070, 150, 150),    #First Slime you see
         Slime(4830, 3630, 150, 150),    #Front of tunnel
@@ -875,6 +1072,7 @@ def main():
         Slime(1340, 2280, 150, 150),    #Slime below Spawn
         Slime(2950, 2480, 150, 150)     #Before jumping up to platform
         ]
+    enemies.append(bossRED)
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -939,6 +1137,46 @@ def main():
                     #print player coordinates
                     #print(f"Player: {player.rect.x}, {player.rect.y}")
 
+                    if hasattr(enemy, 'projectiles'):
+                        for p in enemy.projectiles[:]:
+                            hit_wall = False
+                            for tile in tile_map.tiles:
+                                if p.rect.colliderect(tile.rect):
+                                    enemy.projectiles.remove(p)
+                                    hit_wall = True
+                                    break
+                            if hit_wall:
+                                continue
+
+                            #UNDEFLECTED PROJECTILE
+                            if p.rect.colliderect(player.hitbox):
+                                if not p.deflected:
+                                    if player.knockback_timer == 0:
+                                        player.health -= 20
+                                        player.knockback_timer = 10
+                                        if player.rect.centerx < p.rect.centerx: player.knockback_vel = -15
+                                        else: player.knockback_vel = 15
+                                        
+                                        enemy.projectiles.remove(p)
+                                        print(f"Ouch! Projectile was super painful! {player.health}HP/100HP")
+                            #DEFLECTED PROJECTILE
+                            elif p.rect.colliderect(enemy.hitbox):
+                                if p.deflected:
+                                    if hasattr(enemy, 'invincibility_timer') and enemy.invincibility_timer > 0:
+                                        p.deflect()
+                                    else:
+                                        if enemy.health <= 50:
+                                            enemy.health -= 10 #ADDITIONAL DAMAGE TICK FOR ENRAGED BULLET
+                                        enemy.health -= 5
+                                        enemy.projectiles.remove(p)
+                                        if isinstance(enemy, Tomato):
+                                            enemy.hurt_timer = 10
+                                            enemy.invincibility_timer = 80
+                                        print("Boss hit by own shard!")
+                                        
+                                        if enemy.health <= 0:
+                                            enemies.remove(enemy)
+                                            print("RED CARRIER DEFEATED!")
 
                     if player.melee_attack:
                         MELEE_DMG_START = 0
@@ -957,21 +1195,33 @@ def main():
                             """
                             #END OF CHECK PLAYER ATTACK BOX HERE#======================================================================
                             if attack_box.colliderect(enemy.hitbox):
-                                if enemy not in player.hit_enemies:
-                                    player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
-                                    enemy.health -= 1
-                                    if player.rect.centerx < enemy.rect.centerx:
-                                        enemy.x_vel = 5
-                                    else:
-                                        enemy.x_vel = -5
+                                if hasattr(enemy, 'invincibility_timer') and enemy.invincibility_timer > 0:
+                                    pass
+                                else:
+                                    if enemy not in player.hit_enemies:
+                                        player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
+                                        enemy.health -= 1
+                                        if isinstance(enemy, Tomato):
+                                            enemy.hurt_timer = 6
+                                            enemy.invincibility_timer = 50
+                                        if player.rect.centerx < enemy.rect.centerx:
+                                            enemy.x_vel = 5
+                                        else:
+                                            enemy.x_vel = -5
 
-                                    if enemy.health <= 0:
-                                        enemies.remove(enemy)
+                                        if enemy.health <= 0:
+                                            enemies.remove(enemy)
+                                
+                            if hasattr(enemy, 'projectiles'):
+                                for p in enemy.projectiles :
+                                    if attack_box.colliderect(p.rect) and not p.deflected:
+                                        p.deflect()
+                                        print("DEFLECTED!")
                     
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
-                            player.health -= 10
+                            player.health -= 15
                             player.y_vel = -5
                             if player.rect.x < enemy.rect.x:
                                 player.knockback_vel = -15
@@ -991,10 +1241,6 @@ def main():
                 for tile in tile_map.tiles:
                     tile_screen_position = camera.get_offset_position(tile)
                     WINDOW.blit(tile.image, tile_screen_position)
-
-                for enemy in enemies:
-                    enemy_pos = camera.get_offset_position(enemy)
-                    WINDOW.blit(enemy.sprite, enemy_pos)
                 
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
