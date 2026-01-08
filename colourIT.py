@@ -9,6 +9,9 @@ pygame.mixer.init()
 WIDTH, HEIGHT = 1280, 720 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE) 
 
+# background image for level 1
+background = pygame.image.load('assets/LevelMap/background.png').convert()
+
 FPS = 30
 
 MUSIC_ON = True
@@ -41,6 +44,7 @@ ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
 GOLD = (255, 215, 0)
 DARK_GREY = (40, 40, 40)
+SUBRED = (152, 105, 107)
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -671,7 +675,7 @@ class Projectile(pygame.sprite.Sprite):
 #END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
 
-#MAP SETTING TEST (WILL CHANGE MAP AFTERWARDS) --------------------------------------------------------------------------
+#MAP SETTING -------------------------------------------------------------------------------------------------------
 class Tile(pygame.sprite.Sprite):
     def __init__(self, image, x, y, spritesheet, scale = 1):
         pygame.sprite.Sprite.__init__(self)
@@ -752,7 +756,7 @@ class TileMap():
         
         self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
         return tiles 
-#MAP SETTING TEST END ---------------------------------------------------------------------------------------------------
+#MAP SETTING END ---------------------------------------------------------------------------------------------------
 
 # MAP INDICATOR / MINI MAP ----------------------------------------------------------------------------------------------
 
@@ -1062,6 +1066,9 @@ def main():
 
     camera = Camera(tile_map.map_w, tile_map.map_h) 
 
+    # scale background
+    bg_map = pygame.transform.scale(background, (tile_map.map_w, tile_map.map_h))
+
     bossRED = Tomato(2853, 4500, 150, 150)
     enemies = [
         Slime(1950, 1070, 150, 150),    #First Slime you see
@@ -1122,7 +1129,8 @@ def main():
 
         elif page == 1: #new game page 
             if pause == False:
-                WINDOW.fill(WHITE)
+                WINDOW.fill(SUBRED)
+                WINDOW.blit(bg_map, (camera.offset_x, camera.offset_y)) #loads background
                 
                 player.loop(FPS)
                 handle_move(player, tile_map.tiles, run_sound, SFX_ON)
