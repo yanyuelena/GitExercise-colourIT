@@ -1037,22 +1037,14 @@ class CollectibleItem(pygame.sprite.Sprite):
         super().__init__()
         self.item_name = item_name
         
-        # Load your tomato picture
         self.image = pygame.image.load('assets/icons/tomato.jpg').convert_alpha()
         self.image = pygame.transform.scale(self.image, (40, 40))
         
-        # THIS IS IMPORTANT! Creates the item's position and size
         self.rect = pygame.Rect(x, y, 40, 40)
     
-    def update(self):
-        pass  # We don't need any animation, so this does nothing
-    
     def draw(self, win, camera):
-        # Where to draw on screen
         screen_x = self.rect.x + camera.offset_x
         screen_y = self.rect.y + camera.offset_y
-        
-        # Draw the tomato picture
         win.blit(self.image, (screen_x, screen_y))
 
 def main():
