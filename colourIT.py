@@ -71,7 +71,7 @@ INVENTORY_BUTTON_SIDE = 100
 INVENTORY_BUTTON_MARGIN = 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 7
+PLAYER_VEL = 30
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -482,7 +482,7 @@ class Tomato(Slime):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.rect = pygame.Rect(x, y, width, height)
-        self.health = 100
+        self.health = 1
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
@@ -1036,12 +1036,28 @@ def draw_inventory_button(mouse_pos):
     
     return button
 
+class CollectibleItem(pygame.sprite.Sprite):
+    def __init__(self, x, y, item_name):
+        super().__init__()
+        self.item_name = item_name
+        
+        self.image = pygame.image.load('assets/icons/tomato.jpg').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (40, 40))
+        
+        self.rect = pygame.Rect(x, y, 40, 40)
+    
+    def draw(self, win, camera):
+        screen_x = self.rect.x + camera.offset_x
+        screen_y = self.rect.y + camera.offset_y
+        win.blit(self.image, (screen_x, screen_y))
 
 def main():
     player = Player(100, 100, 50, 50)
     dialogue_box = DialogueBox()
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
+
+    collectibles = [] 
     
     page = 0
     pause = False
@@ -1137,6 +1153,15 @@ def main():
 
                 dialogue_box.update_dialogue()
 
+                
+                for item in collectibles[:]:
+                    if player.hitbox.colliderect(item.rect):
+                        was_collected = player.collection.collect_item(item.item_name)
+                        
+                        if was_collected:
+                            collectibles.remove(item)
+                            print(f"Collected: {item.item_name}!")
+
 
 
                 for enemy in enemies:
@@ -1183,6 +1208,10 @@ def main():
                                         print("Boss hit by own shard!")
                                         
                                         if enemy.health <= 0:
+                                            if isinstance(enemy, Tomato):
+                                                new_item = CollectibleItem(enemy.rect.centerx - 20,  enemy.rect.centery, "Red Bucket")
+                                                collectibles.append(new_item)
+                                                print("The boss dropped an item!")
                                             enemies.remove(enemy)
                                             print("RED CARRIER DEFEATED!")
 
@@ -1218,7 +1247,12 @@ def main():
                                             enemy.x_vel = -5
 
                                         if enemy.health <= 0:
-                                            enemies.remove(enemy)
+                                            if enemy.health <= 0:
+                                                if isinstance(enemy, Tomato):
+                                                    new_item = CollectibleItem(enemy.rect.centerx - 20, enemy.rect.centery, "Red Bucket")
+                                                    collectibles.append(new_item)
+                                                    print("Boss dropped item!")
+                                                enemies.remove(enemy)
                                 
                             if hasattr(enemy, 'projectiles'):
                                 for p in enemy.projectiles :
@@ -1274,6 +1308,10 @@ def main():
                     pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
                     """
                     #END OF CHECK ENEMY HITBOX HERE#========================================================================
+                
+                for item in collectibles:
+                    item.update() 
+                    item.draw(WINDOW, camera)
 
                 # draw minimap in bottom-right
                 MiniMap.draw_minimap(tile_map, WINDOW, player, size=200, padding=10)
