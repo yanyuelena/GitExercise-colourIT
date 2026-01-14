@@ -71,7 +71,7 @@ INVENTORY_BUTTON_SIDE = 100
 INVENTORY_BUTTON_MARGIN = 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 30
+PLAYER_VEL = 7
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -482,7 +482,7 @@ class Tomato(Slime):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.rect = pygame.Rect(x, y, width, height)
-        self.health = 1
+        self.health = 60
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
