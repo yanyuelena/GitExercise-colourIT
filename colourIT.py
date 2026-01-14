@@ -44,7 +44,7 @@ ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
 GOLD = (255, 215, 0)
 DARK_GREY = (40, 40, 40)
-SUBRED = (152, 105, 107)
+SUBRED = (90, 56, 58)
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -71,7 +71,7 @@ INVENTORY_BUTTON_SIDE = 100
 INVENTORY_BUTTON_MARGIN = 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 30
+PLAYER_VEL = 7
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -482,7 +482,7 @@ class Tomato(Slime):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.rect = pygame.Rect(x, y, width, height)
-        self.health = 1
+        self.health = 60
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
@@ -771,7 +771,7 @@ class MiniMap():
         x = WIDTH - mini_w - padding
         y = HEIGHT - mini_h - padding
 
-        pygame.draw.rect(surface, BLACK, (x - 2, y - 2, mini_w + 4, mini_h + 4))
+        pygame.draw.rect(surface, SUBRED, (x - 2, y - 2, mini_w + 4, mini_h + 4))
         
         surface.blit(mini, (x, y))
 
@@ -784,7 +784,47 @@ class MiniMap():
             pygame.draw.rect(surface, lightblue, (x + px - markersize//2, y + py - markersize//2, markersize, markersize))
 
 # MINI MAP END --------------------------------------------------------------------------------------------------------------
-   
+
+# CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
+
+class Pre_Cutscene:
+    def __init__(self, image_paths, durations):
+        self.images = [pygame.image.load(path).convert() for path in image_paths]
+        if isinstance(durations, (list, tuple)):
+            self.durations = [int(d) for d in durations]
+        else:
+            self.durations = [int(durations)]
+
+        if len(self.durations) < len(self.images):
+            last = self.durations[-1]
+            self.durations += [last] * (len(self.images) - len(self.durations))
+
+        self.current_image_index = 0
+        self.frame_count = 0
+        self.finished = False
+
+    def update(self):
+        if self.finished:
+            return
+
+        self.frame_count += 1
+        current_duration = self.durations[self.current_image_index]
+        if self.frame_count >= current_duration:
+            self.frame_count = 0
+            self.current_image_index += 1
+            if self.current_image_index >= len(self.images):
+                self.finished = True
+
+    def draw(self, screen):
+        if self.finished:
+            return
+
+        if self.current_image_index < len(self.images):
+            img = self.images[self.current_image_index]
+            img_scaled = pygame.transform.scale(img, (WIDTH, HEIGHT))
+            screen.blit(img_scaled, (0, 0))
+
+# CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -1085,6 +1125,23 @@ def main():
     # scale background
     bg_map = pygame.transform.scale(background, (tile_map.map_w, tile_map.map_h))
 
+    # cutscene paths -------------------------------------------------
+    cutscene_dir = os.path.join('assets', 'Cutscene')
+    try:
+        cutscene_files = sorted([f for f in listdir(cutscene_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+    except Exception:
+        cutscene_files = []
+
+    cutscene_paths = [os.path.join(cutscene_dir, f) for f in cutscene_files]
+    cut = None
+
+    default_durations = [15, 10, 10, 30, 55, 55, 60, 50]
+    if len(default_durations) == len(cutscene_paths):
+        cutscene_durations = default_durations
+    else:
+        cutscene_durations = [5] * len(cutscene_paths)
+    # -----------------------------------------------------------------
+
     bossRED = Tomato(2853, 4500, 150, 150)
     enemies = [
         Slime(1950, 1070, 150, 150),    #First Slime you see
@@ -1364,6 +1421,23 @@ def main():
             # RESTART_BUTTON = draw_button("Restart Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos) (i dw put first i wait for the checkpoint code)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
+        elif page == 5: #cutscene page
+            if cut is None:
+                valid_paths = [p for p in cutscene_paths if os.path.exists(p)]
+                if not valid_paths:
+                    print ("Cutscene ended: no valid images found.")
+                    page = 1
+                else:
+                    cut = Pre_Cutscene(valid_paths, cutscene_durations)
+
+            if cut is not None:
+                cut.update()
+                cut.draw(WINDOW)
+                if cut.finished:
+                    cut = None
+                    print ("Cutscene finished: no valid images found.")
+                    page = 1
+
         if message_timer > 0:
             draw_message(message)
 
@@ -1384,7 +1458,7 @@ def main():
                             player.update()
                             player.health = player.max_health
                             show_new_game_warning = False
-                            page = 1
+                            page = 5
                             pause = False
                             dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
                         if NO_BUTTON.collidepoint(mouse_pos):
@@ -1395,13 +1469,13 @@ def main():
                             if if_save_exists():
                                 show_new_game_warning = True
                             else: 
-                                player.rect.x = 980
-                                player.rect.y = 220
-                                player.update()
-                                player.health = player.max_health 
-                                page = 1
-                                pause = False
-                                dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
+                                    player.rect.x = 980
+                                    player.rect.y = 220
+                                    player.update()
+                                    player.health = player.max_health 
+                                    page = 5
+                                    pause = False
+                                    dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
                         if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                             if if_save_exists():
                                 load_game(player)
