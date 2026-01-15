@@ -1179,6 +1179,8 @@ def main():
     bg_map = pygame.transform.scale(background, (tile_map.map_w, tile_map.map_h))
 
     # cutscene paths -------------------------------------------------
+    cutscene1_skip = False
+
     cutscene_dir = os.path.join('assets', 'Cutscene')
     try:
         cutscene_files = sorted([f for f in listdir(cutscene_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
@@ -1603,6 +1605,11 @@ def main():
                         page = 0
                     elif page == 0:
                         run = False
+                    elif page == 5: # skip cutsncece
+                        cutscene1_skip = True
+                        print("Cutscene skipped by pressing Esc.")
+                        page = 1
+                        cut = None
                 if event.key == pygame.K_F11:
                     WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 if event.key == pygame.K_SPACE:
