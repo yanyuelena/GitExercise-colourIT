@@ -1091,6 +1091,19 @@ class CollectibleItem(pygame.sprite.Sprite):
         screen_y = self.rect.y + camera.offset_y
         win.blit(self.image, (screen_x, screen_y))
 
+def draw_tomatoboss_health_bar(boss):
+    bar_x = WIDTH//2 - BAR_WIDTH//2
+    bar_y = 100
+    pygame.draw.rect(WINDOW, RED, (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT))
+    tomatoboss_left_health = int((boss.health/60) * BAR_WIDTH)
+    pygame.draw.rect(WINDOW, GREEN, (bar_x, bar_y, tomatoboss_left_health, BAR_HEIGHT))
+    pygame.draw.rect(WINDOW, BLACK, (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT),1 )
+
+    tomatoboss_font = pygame.font.SysFont("comicsans", 60, bold=True)
+    tomatoboss_text = tomatoboss_font.render("TOMATO BOSS", True, BLACK)
+    text_x = WIDTH // 2 - tomatoboss_text.get_width() // 2
+    WINDOW.blit(tomatoboss_text, (text_x, bar_y - 80))
+
 def main():
     player = Player(100, 100, 50, 50)
     dialogue_box = DialogueBox()
@@ -1365,6 +1378,14 @@ def main():
                     pygame.draw.rect(WINDOW, (255, 0, 0), (hx, hy, enemy.hitbox.width, enemy.hitbox.height), 2)
                     """
                     #END OF CHECK ENEMY HITBOX HERE#========================================================================
+                    if isinstance(enemy, Tomato):
+                        # How far the player and boss
+                        distance_x = player.rect.x - enemy.rect.x
+                        distance_y = player.rect.y - enemy.rect.y
+                        distance = math.hypot(distance_x, distance_y)
+                        
+                        if distance < 600:
+                            draw_tomatoboss_health_bar(enemy)
                 
                 for item in collectibles:
                     item.update() 
