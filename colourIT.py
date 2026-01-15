@@ -482,7 +482,7 @@ class Tomato(Slime):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.rect = pygame.Rect(x, y, width, height)
-        self.health = 60
+        self.health = 100
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
@@ -671,6 +671,46 @@ class Projectile(pygame.sprite.Sprite):
         screen_x = self.rect.x + camera.offset_x
         screen_y = self.rect.y + camera.offset_y
         pygame.draw.rect(win, self.color, (screen_x, screen_y, self.rect.width, self.rect.height))
+
+class Blueberry(Tomato):
+    SPRITES = load_sprite_sheets("Enemies", "Blueberry", 150, 150, True)
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        self.health = 65
+        self.action_duration = 40
+        self.speed = 7
+
+    def pick_new_state(self):
+        super().pick_new_state()
+
+        if self.state == "move":
+            self.y_vel = -13
+
+    def shoot(self):
+        if self.target_player:
+            #ANGLE COMPARED TO PLAYER
+            dx = self.target_player.rect.centerx - self.rect.centerx
+            dy = self.target_player.rect.centery - self.rect.centery
+            base_angle = math.atan2(dy, dx)
+            
+            spread = [-0.3, 0, 0.3] 
+            
+            for offset in spread:
+                angle = base_angle + offset
+                
+                speed = 18 
+                x_vel = math.cos(angle) * speed
+                y_vel = math.sin(angle) * speed
+                
+                bullet = Projectile(self.rect.centerx, self.rect.centery, 
+                                    self.rect.centerx + x_vel, self.rect.centery + y_vel, speed=speed)
+                
+                bullet.x_vel = x_vel
+                bullet.y_vel = y_vel
+                bullet.color = (0, 0, 255)
+                
+                self.projectiles.append(bullet)
 
 #END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
@@ -1142,7 +1182,6 @@ def main():
         cutscene_durations = [5] * len(cutscene_paths)
     # -----------------------------------------------------------------
 
-    bossRED = Tomato(2853, 4500, 150, 150)
     enemies = [
         Slime(1950, 1070, 150, 150),    #First Slime you see
         Slime(4830, 3630, 150, 150),    #Front of tunnel
@@ -1150,9 +1189,11 @@ def main():
         Slime(5050, 1520, 150, 150),    #Platform Slime Behind
         Slime(3950, 1130, 150, 150),    #Double Jump Guard Slime
         Slime(1340, 2280, 150, 150),    #Slime below Spawn
-        Slime(2950, 2480, 150, 150)     #Before jumping up to platform
+        Slime(2950, 2480, 150, 150),     #Before jumping up to platform
+        #BOSSES HERE
+        Tomato(2853, 4500, 150, 150),
+        Blueberry(3000, 4500, 150, 150)
         ]
-    enemies.append(bossRED)
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -1469,7 +1510,7 @@ def main():
                             if if_save_exists():
                                 show_new_game_warning = True
                             else: 
-                                    player.rect.x = 980
+                                    player.rect.x = 980  #Player spawn point (ori is 980, 220 | tomato chamber test: 2253, 4500)
                                     player.rect.y = 220
                                     player.update()
                                     player.health = player.max_health 
