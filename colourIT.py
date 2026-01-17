@@ -71,7 +71,7 @@ INVENTORY_BUTTON_SIDE = 100
 INVENTORY_BUTTON_MARGIN = 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 7
+PLAYER_VEL = 30
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -1204,7 +1204,7 @@ def main():
         Slime(5050, 1520, 150, 150),    #Platform Slime Behind
         Slime(3950, 1130, 150, 150),    #Double Jump Guard Slime
         Slime(1340, 2280, 150, 150),    #Slime below Spawn
-        Slime(2950, 2480, 150, 150),     #Before jumping up to platform
+        Slime(2950, 2480, 150, 150),    #Before jumping up to platform
         #BOSSES HERE
         Tomato(2853, 4500, 150, 150),
         Blueberry(3000, 4500, 150, 150)
@@ -1305,6 +1305,9 @@ def main():
                                         
                                         enemy.projectiles.remove(p)
                                         print(f"Ouch! Projectile was super painful! {player.health}HP/100HP")
+                                        
+                                        if player.health <= 0:
+                                            page = 4
                             #DEFLECTED PROJECTILE
                             elif p.rect.colliderect(enemy.hitbox):
                                 if p.deflected:
