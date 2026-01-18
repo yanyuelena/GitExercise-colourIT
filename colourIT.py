@@ -1585,7 +1585,10 @@ def main():
                 elif page == 4:
                     if MENU_BUTTON.collidepoint(mouse_pos):
                         page = 0
-                        
+                        player.health = player.max_health
+                        if os.path.exists("savegame.json"):
+                            os.remove("savegame.json")
+
 
             if event.type == pygame.KEYDOWN:
                 if page == 1 and not pause:
