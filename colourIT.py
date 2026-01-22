@@ -12,6 +12,9 @@ WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 # background image for level 1
 background = pygame.image.load('assets/LevelMap/background.png').convert()
 
+# background image for hub
+hub_background = pygame.image.load('assets/LevelX/backgroundx.png').convert()
+
 FPS = 30
 
 MUSIC_ON = True
@@ -45,6 +48,7 @@ GREEN = (0, 255, 0)
 GOLD = (255, 215, 0)
 DARK_GREY = (40, 40, 40)
 SUBRED = (90, 56, 58)
+NOTBLACK = (40, 40, 40)
 
 #pause icon
 PAUSE_BUTTON_SIDE = 100
@@ -968,6 +972,31 @@ class TileMap():
         
         self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
         return tiles 
+
+class TileMapX(TileMap): #assign tiles for hub map
+    def load_tiles(self, level0):
+        tiles = []
+        map = self.read_csv(level0)
+        x, y = 0, 0
+        for row in map:
+            x = 0
+            for tile in row:
+                if tile == '-1':
+                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
+                elif tile == '0':
+                    tiles.append(Tile('ground.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '1':
+                    tiles.append(Tile('level0_redroot.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '2':
+                    tiles.append(Tile('level0_blueroot.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                elif tile == '3':
+                    tiles.append(Tile('level0_greenroot.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
+                
+                x += 1
+            y += 1
+        
+        self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
+        return tiles 
 #MAP SETTING END ---------------------------------------------------------------------------------------------------
 
 # MAP INDICATOR / MINI MAP ----------------------------------------------------------------------------------------------
@@ -1339,16 +1368,25 @@ def main():
             path = join("assets", "LevelMap", name)
             return pygame.image.load(path).convert_alpha()
     
+    class SpriteSheetX:
+        def parse_sprite(self, name):
+            path = join("assets", "LevelX", name)
+            return pygame.image.load(path).convert_alpha()
+    
     spritesheet = SpriteSheet()
+    spritesheet_x = SpriteSheetX()
     tile_map = TileMap('assets/LevelMap/level0.csv', spritesheet, scale = 1) #also scales up the map here
+    tile_map_x = TileMapX('assets/LevelX/level_x.csv', spritesheet_x, scale = 1) #hub
 
     # mini map indicator
     MiniMap.draw_minimap(tile_map, pygame.display.get_surface(), player, size=200, padding=10)
 
-    camera = Camera(tile_map.map_w, tile_map.map_h) 
+    camera = Camera(tile_map.map_w, tile_map.map_h)
+    camera_x = Camera(tile_map_x.map_w, tile_map_x.map_h)
 
     # scale background
     bg_map = pygame.transform.scale(background, (tile_map.map_w, tile_map.map_h))
+    bg_map_x = pygame.transform.scale(hub_background, (tile_map_x.map_w, tile_map_x.map_h))
 
     # cutscene paths -------------------------------------------------
     cutscene1_skip = False
@@ -1382,6 +1420,9 @@ def main():
         Blueberry(3950, 1130, 150, 150), #Changed to Double Jump Guard
         Cabbage(1940, 1570, 150, 150)
         ]
+
+    # hub red trigger f key
+    RedCollision_zone = pygame.Rect(444, 746, 200, 746)
 
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
@@ -1671,7 +1712,7 @@ def main():
                 valid_paths = [p for p in cutscene_paths if os.path.exists(p)]
                 if not valid_paths:
                     print ("Cutscene ended: no valid images found.")
-                    page = 1
+                    page = 6
                 else:
                     cut = Pre_Cutscene(valid_paths, cutscene_durations)
 
@@ -1681,8 +1722,55 @@ def main():
                 if cut.finished:
                     cut = None
                     print ("Cutscene finished: no valid images found.")
-                    page = 1
+                    page = 6
 
+        elif page == 6: #level after cutscene, hub
+            if pause == False:
+                WINDOW.fill(NOTBLACK)
+                WINDOW.blit(bg_map_x, (camera_x.offset_x, camera_x.offset_y))
+                
+                player.loop(FPS)
+                handle_move(player, tile_map_x.tiles, run_sound, SFX_ON)
+                
+                camera_x.follow_player(player)
+                
+                for tile in tile_map_x.tiles:
+                    tile_screen_position = camera_x.get_offset_position(tile)
+                    WINDOW.blit(tile.image, tile_screen_position)
+                
+                player_screen_position = camera_x.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+                
+                PAUSE_BUTTON = draw_pause_button(mouse_pos)
+                INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
+
+                if player.hitbox.colliderect(RedCollision_zone):
+                    info_font = pygame.font.SysFont("comicsans", 30)
+                    info_text = info_font.render("Press F to interact.", 1, WHITE)
+                    WINDOW.blit(info_text, (WIDTH//2 - info_text.get_width()//2, HEIGHT - 150))
+            
+            elif pause == True:
+                WINDOW.fill(WHITE)
+                
+                player_screen_position = camera_x.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                overlay.set_alpha(128)
+                WINDOW.blit(overlay, (0, 0))
+
+                pause_text = TITLE_FONT.render("Paused!", 1, BLACK)
+                WINDOW.blit(pause_text, ((WIDTH//2 - pause_text.get_width()//2, TITLE_Y)))
+
+                RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+                BGM_BUTTON = draw_button(bgm_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
+                SFX_BUTTON = draw_button(sfx_text, BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+    
         if message_timer > 0:
             draw_message(message)
 
@@ -1734,7 +1822,7 @@ def main():
                         if QUIT_BUTTON.collidepoint(mouse_pos):
                             run = False
 
-                elif page == 1:
+                elif page == 1 or page == 6:
                     if pause == False:
                         if PAUSE_BUTTON.collidepoint(mouse_pos):
                             pause = True
@@ -1769,9 +1857,10 @@ def main():
 
 
             if event.type == pygame.KEYDOWN:
-                if page == 1 and not pause:
+                if (page == 1 or page == 6) and not pause:
                     if event.key == pygame.K_SPACE:
                         player.melee()
+                        print(f"Player: {player.rect.x}, {player.rect.y}")
                         if SFX_ON:
                             attack_sound.play()
                     if event.key == pygame.K_i:  
@@ -1783,7 +1872,7 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
                         show_new_game_warning = False   
-                    elif page == 1:
+                    elif page == 1 or page == 6:
                         pause = not pause
                     elif page == 3:
                         page = 0
@@ -1792,10 +1881,18 @@ def main():
                     elif page == 5: # skip cutsncece
                         cutscene1_skip = True
                         print("Cutscene skipped by pressing Esc.")
-                        page = 1
+                        page = 6
                         cut = None
                 if event.key == pygame.K_F11:
                     WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                if event.key == pygame.K_f:
+                    if page == 6:
+                        if RedCollision_zone.colliderect(player.rect):
+                            page = 1
+                            pause = False
+                            player.rect.x = 980
+                            player.rect.y = 220
+                            player.update()
                 if event.key == pygame.K_SPACE:
                     if dialogue_box.active:
                         if dialogue_box.finished:
@@ -1804,7 +1901,6 @@ def main():
                             dialogue_box.skip_dialogue()
                     else: 
                         player.melee()
-
 
 
     pygame.quit() 
