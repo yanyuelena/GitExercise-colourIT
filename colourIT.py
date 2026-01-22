@@ -71,7 +71,7 @@ INVENTORY_BUTTON_SIDE = 100
 INVENTORY_BUTTON_MARGIN = 20
 
 #START OF ENTITY SPRITE AND MOVEMENT--------------------------------------------------------------------------
-PLAYER_VEL = 30
+PLAYER_VEL = 8
 
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False)for sprite in sprites]
@@ -125,8 +125,8 @@ class Player(pygame.sprite.Sprite):
         self.update()
 
         #player health
-        self.health = 100
-        self.max_health = 100
+        self.health = 10000
+        self.max_health = 10000
         #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
@@ -482,7 +482,7 @@ class Tomato(Slime):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.rect = pygame.Rect(x, y, width, height)
-        self.health = 100
+        self.health = 60
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
@@ -507,7 +507,7 @@ class Tomato(Slime):
     def loop(self, fps, player):
         for p in self.projectiles:
             p.move()
-            if p.rect.x < -2000 or p.rect.x > 5000 or p.timer > 120: 
+            if p.timer > 120: 
                 self.projectiles.remove(p)
 
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
@@ -591,11 +591,7 @@ class Tomato(Slime):
         if self.hurt_timer > 0:
             sprite_sheet = "hurt"
             self.hurt_timer -= 1
-            shake_amount = 5
-            offset_x = random.randint(-shake_amount, shake_amount)
-            offset_y = random.randint(-shake_amount, shake_amount)
-            self.rect.x += offset_x
-            self.rect.y += offset_y
+            
         elif self.state == "move": 
             sprite_sheet = "move"
         elif self.state == "attack": 
@@ -627,6 +623,17 @@ class Tomato(Slime):
         self.animation_count += 1
 
     def draw(self, win, camera):
+        offset_x = 0
+        offset_y = 0
+        if self.hurt_timer > 0:
+            shake_amount = 5
+            offset_x = random.randint(-shake_amount, shake_amount)
+            offset_y = random.randint(-shake_amount, shake_amount)
+        real_x = self.rect.x
+        real_y = self.rect.y
+        self.rect.x += offset_x
+        self.rect.y += offset_y
+
         draw_body = True
         if self.invincibility_timer > 0:
             if self.invincibility_timer % 10 < 5: 
@@ -637,6 +644,9 @@ class Tomato(Slime):
         
         for p in self.projectiles:
             p.draw(win, camera)
+            
+        self.rect.x = real_x
+        self.rect.y = real_y
 
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, x, y, target_x, target_y, speed):
@@ -677,7 +687,7 @@ class Blueberry(Tomato):
 
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
-        self.health = 65
+        self.health = 60
         self.action_duration = 40
         self.speed = 7
 
@@ -699,7 +709,7 @@ class Blueberry(Tomato):
             for offset in spread:
                 angle = base_angle + offset
                 
-                speed = 18 
+                speed = 15 
                 x_vel = math.cos(angle) * speed
                 y_vel = math.sin(angle) * speed
                 
@@ -711,6 +721,168 @@ class Blueberry(Tomato):
                 bullet.color = (0, 0, 255)
                 
                 self.projectiles.append(bullet)
+
+class Cabbage(Tomato):
+    SPRITES = load_sprite_sheets("Enemies", "Cabbage", 150, 150, True) 
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        self.health = 60
+        self.speed = 0
+        self.dash_speed = 25
+        self.dash_direction = 0
+
+    def shoot(self):
+        pass
+
+    def pick_new_state(self):
+        self.state_timer = 0
+        
+        if random.random() < 0.7:
+            self.state = "charge"
+            self.action_duration = 30
+            self.x_vel = 0 
+        else:
+            self.state = "idle"
+            self.action_duration = 30
+
+    def loop(self, fps, player):
+        if self.state == "dash":
+            self.y_vel = 0
+            self.fall_count = 0 
+        else:
+            self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
+            self.fall_count += 1
+
+        dx = player.rect.centerx - self.rect.centerx
+        dy = player.rect.centery - self.rect.centery
+        distance = math.hypot(dx, dy)
+        
+        if self.invincibility_timer > 0: 
+            self.invincibility_timer -= 1
+
+        if self.hurt_timer > 0: 
+            if self.x_vel > 0:
+                self.x_vel -= 1
+            elif self.x_vel < 0:
+                self.x_vel += 1
+            
+            self.hurt_timer -= 1
+
+            if self.hurt_timer == 0:
+                self.state = "idle"
+                self.state_timer = 0
+                self.action_duration = 40
+                self.dash_direction = 0
+            
+        else: 
+            if distance < 800 or self.state == "dash" or self.state == "charge":
+                
+                self.state_timer += 1
+                
+                if self.state == "idle":
+                    self.x_vel = 0
+                    if self.state_timer > self.action_duration:
+                        self.pick_new_state()
+
+                elif self.state == "charge":
+                    self.x_vel = 0 
+                    
+                    if player.rect.centerx > self.rect.centerx: 
+                        self.direction = "right"
+                    else: 
+                        self.direction = "left"
+
+                    if self.state_timer > self.action_duration:
+                        self.state = "dash"
+                        self.state_timer = 0
+                        self.action_duration = 20
+                        
+                        if self.direction == "right": 
+                            self.dash_direction = self.dash_speed
+                        else: 
+                            self.dash_direction = -self.dash_speed
+
+                        self.rect.y -= 2
+                        self.x_vel = self.dash_direction
+
+                elif self.state == "dash":
+                    if self.x_vel == 0 and self.dash_direction != 0:
+                        self.health -= 10
+                        self.hurt_timer = 15
+                        self.state = "idle"
+                        self.state_timer = 0
+                        self.action_duration = 90
+
+                        if self.dash_direction > 0:
+                            self.x_vel = -15
+                        else:
+                            self.x_vel = 15
+
+                        self.dash_direction = 0
+                        print("Cabbage bonked into a wall!")
+                    
+                    else:
+                        self.x_vel = self.dash_direction
+                    
+                    if self.state_timer > self.action_duration:
+                        self.state = "idle"
+                        self.state_timer = 0
+                        self.action_duration = 40
+                        self.dash_direction = 0
+            else:
+                self.state = "idle"
+                self.x_vel = 0
+
+        self.update_sprite()
+        self.update()
+
+    def update_sprite(self):
+        sprite_sheet = "idle"
+        
+        if self.hurt_timer > 0:
+            sprite_sheet = "hurt"
+
+        elif self.state == "charge":
+            sprite_sheet = "charge"
+            
+        elif self.state == "dash":
+            sprite_sheet = "dash"
+
+        elif self.state == "move":
+            sprite_sheet = "move"
+
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+        
+        if sprite_sheet == "hurt":
+            sprite_index = 0
+            
+        else:
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+
+    def draw(self, win, camera):
+        offset_x = 0
+        offset_y = 0
+
+        if self.state == "charge":
+            shake_amount = 5
+            offset_x = random.randint(-shake_amount, shake_amount)
+            offset_y = random.randint(-shake_amount, shake_amount)
+        
+        real_x = self.rect.x
+        real_y = self.rect.y
+        
+        self.rect.x += offset_x
+        self.rect.y += offset_y
+        
+        super().draw(win, camera)
+        
+        self.rect.x = real_x
+        self.rect.y = real_y
 
 #END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
@@ -1140,7 +1312,7 @@ def draw_tomatoboss_health_bar(boss):
     pygame.draw.rect(WINDOW, BLACK, (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT),1 )
 
     tomatoboss_font = pygame.font.SysFont("comicsans", 60, bold=True)
-    tomatoboss_text = tomatoboss_font.render("TOMATO BOSS", True, BLACK)
+    tomatoboss_text = tomatoboss_font.render("BOSS", True, BLACK)
     text_x = WIDTH // 2 - tomatoboss_text.get_width() // 2
     WINDOW.blit(tomatoboss_text, (text_x, bar_y - 80))
 
@@ -1202,12 +1374,13 @@ def main():
         Slime(4830, 3630, 150, 150),    #Front of tunnel
         Slime(4850, 1520, 150, 150),    #Platform Slime Front
         Slime(5050, 1520, 150, 150),    #Platform Slime Behind
-        Slime(3950, 1130, 150, 150),    #Double Jump Guard Slime
+        #Slime(3950, 1130, 150, 150),    #Double Jump Guard Slime
         Slime(1340, 2280, 150, 150),    #Slime below Spawn
         Slime(2950, 2480, 150, 150),    #Before jumping up to platform
         #BOSSES HERE
         Tomato(2853, 4500, 150, 150),
-        Blueberry(3000, 4500, 150, 150)
+        Blueberry(3950, 1130, 150, 150), #Changed to Double Jump Guard
+        Cabbage(1940, 1570, 150, 150)
         ]
 
     #main bgm
@@ -1283,6 +1456,11 @@ def main():
                     #print player coordinates
                     #print(f"Player: {player.rect.x}, {player.rect.y}")
 
+                    if enemy.health <= 0:
+                        if isinstance(enemy, Cabbage):
+                            enemies.remove(enemy)
+                            continue
+
                     if hasattr(enemy, 'projectiles'):
                         for p in enemy.projectiles[:]:
                             hit_wall = False
@@ -1328,8 +1506,8 @@ def main():
                                                 new_item = CollectibleItem(enemy.rect.centerx - 20,  enemy.rect.centery, "Red Bucket")
                                                 collectibles.append(new_item)
                                                 print("The boss dropped an item!")
-                                            enemies.remove(enemy)
-                                            print("RED CARRIER DEFEATED!")
+                                                enemies.remove(enemy)
+                                                print("RED CARRIER DEFEATED!")
 
                     if player.melee_attack:
                         MELEE_DMG_START = 0
@@ -1431,7 +1609,7 @@ def main():
                         distance = math.hypot(distance_x, distance_y)
                         
                         if distance < 600:
-                            draw_tomatoboss_health_bar(enemy)
+                                draw_tomatoboss_health_bar(enemy)
                 
                 for item in collectibles:
                     item.update() 
