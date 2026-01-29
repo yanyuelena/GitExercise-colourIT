@@ -1406,7 +1406,7 @@ def main():
     else:
         cutscene_durations = [5] * len(cutscene_paths)
     # -----------------------------------------------------------------
-
+    """ #removed to fix spawn
     enemies = [
         Slime(1950, 1070, 150, 150),    #First Slime you see
         Slime(4830, 3630, 150, 150),    #Front of tunnel
@@ -1420,7 +1420,7 @@ def main():
         Blueberry(3950, 1130, 150, 150), #Changed to Double Jump Guard
         Cabbage(1940, 1570, 150, 150)
         ]
-
+    """
     # hub red trigger f key
     RedCollision_zone = pygame.Rect(444, 746, 200, 746)
 
@@ -1786,10 +1786,24 @@ def main():
                         if YES_BUTTON.collidepoint(mouse_pos):
                             if os.path.exists('savegame.json'):
                                 os.remove('savegame.json')
-                            player.rect.x = tile_map.start_x
-                            player.rect.y = tile_map.start_y
+                            player.rect.x = 980
+                            player.rect.y = 220
                             player.update()
                             player.health = player.max_health
+                            #enemy & bucket spawnfix
+                            enemies = [
+                                Slime(1950, 1070, 150, 150),
+                                Slime(4830, 3630, 150, 150),
+                                Slime(4850, 1520, 150, 150),
+                                Slime(5050, 1520, 150, 150),
+                                Slime(1340, 2280, 150, 150),
+                                Slime(2950, 2480, 150, 150),
+                                Tomato(2853, 4500, 150, 150),
+                                Blueberry(3950, 1130, 150, 150),
+                                Cabbage(1940, 1570, 150, 150)
+                            ]
+                            collectibles = []
+
                             show_new_game_warning = False
                             page = 5
                             pause = False
@@ -1806,6 +1820,21 @@ def main():
                                     player.rect.y = 220
                                     player.update()
                                     player.health = player.max_health 
+
+                                    #enemy & bucket spawnfix
+                                    enemies = [
+                                        Slime(1950, 1070, 150, 150),
+                                        Slime(4830, 3630, 150, 150),
+                                        Slime(4850, 1520, 150, 150),
+                                        Slime(5050, 1520, 150, 150),
+                                        Slime(1340, 2280, 150, 150),
+                                        Slime(2950, 2480, 150, 150),
+                                        Tomato(2853, 4500, 150, 150),
+                                        Blueberry(3950, 1130, 150, 150),
+                                        Cabbage(1940, 1570, 150, 150)
+                                    ]
+                                    collectibles = []
+
                                     page = 5
                                     pause = False
                                     dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
