@@ -5,9 +5,9 @@ from os.path import isfile, join
 pygame.font.init()
 pygame.mixer.init()
 
-#windows setup 
-WIDTH, HEIGHT = 1280, 720 
-WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE) 
+#windows setup
+WIDTH, HEIGHT = 1280, 720
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
 # background image for level 1
 background = pygame.image.load('assets/LevelMap/background.png').convert()
@@ -18,9 +18,9 @@ hub_background = pygame.image.load('assets/LevelX/backgroundx.png').convert()
 FPS = 30
 
 MUSIC_ON = True
-SFX_ON = True 
+SFX_ON = True
 
-# fonts for main menu's text 
+# fonts for main menu's text
 TITLE_FONT = pygame.font.SysFont("comicsans", 80)
 BUTTON_FONT = pygame.font.SysFont("comicsans", 40)
 
@@ -56,7 +56,7 @@ PAUSE_BUTTON_MARGIN = 20
 PAUSE_ICON = pygame.image.load('assets/icons/pause.png').convert_alpha()
 PAUSE_ICON = pygame.transform.scale(PAUSE_ICON, (PAUSE_BUTTON_SIDE, PAUSE_BUTTON_SIDE))
 
-# health bar 
+# health bar
 BAR_WIDTH, BAR_HEIGHT, BAR_MARGIN = 200, 20, 20
 
 # dialogue box constants
@@ -95,7 +95,7 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
             rect = pygame.Rect(i * width, 0, width, height)
             surface.blit(sprite_sheet, (0, 0), rect)
             sprites.append(surface)
-        
+       
         if direction:
             all_sprites[image.replace(".png", "") + "_right"] = sprites
             all_sprites[image.replace(".png", "") + "_left"] = flip(sprites)
@@ -135,7 +135,7 @@ class Player(pygame.sprite.Sprite):
         self.knockback_timer = 0
         self.knockback_vel = 0
         #for collection system
-        self.collection = Collection() 
+        self.collection = Collection()
 
 #MOVEMENT FUNC
     def jump(self):
@@ -215,7 +215,7 @@ class Player(pygame.sprite.Sprite):
 
         if self.melee_attack:
             total_duration = len(sprites) * self.ANIMATION_DELAY
-            
+           
             if self.animation_count >= total_duration:
                 self.melee_attack = False
                 self.animation_count = 0
@@ -231,7 +231,7 @@ class Player(pygame.sprite.Sprite):
 
         else:
             sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
-    
+   
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
         self.update()
@@ -249,20 +249,20 @@ def handle_vertical_collision(player, objects, dy):
 
     for obj in objects:
         if player.hitbox.colliderect(obj.rect):
-            if dy > 0: 
-                offset = player.hitbox.bottom - player.rect.bottom 
+            if dy > 0:
+                offset = player.hitbox.bottom - player.rect.bottom
                 player.rect.bottom = obj.rect.top - offset
                 player.hitbox.bottom = obj.rect.top
                 player.landed()
                 collided_objects.append(obj)
-            
+           
             elif dy < 0:
                 offset = player.hitbox.top - player.rect.top
                 player.rect.top = obj.rect.bottom - offset
                 player.hitbox.top = obj.rect.bottom
                 player.hit_head()
                 collided_objects.append(obj)
-    
+   
     return collided_objects
 
 
@@ -271,21 +271,21 @@ def handle_horizontal_collision(player, objects, dx):
         return
 
     collided_object = None
-    
+   
     for obj in objects:
         if player.hitbox.colliderect(obj.rect):
             collided_object = obj
-            
+           
             if dx > 0:  #MOVE RIGHT
                 player.rect.right = obj.rect.left + 55
                 player.hitbox.right = obj.rect.left
             elif dx < 0:  #MOVE LEFT
                 player.rect.left = obj.rect.right - 55
                 player.hitbox.left = obj.rect.right
-            
+           
             player.x_vel = 0
             break
-    
+   
     return collided_object
 
 def handle_move(player, objects, run_sound, sfx_on):
@@ -310,13 +310,13 @@ def handle_move(player, objects, run_sound, sfx_on):
         if is_running and SFX_ON:
             if run_sound.get_num_channels() == 0:
                 run_sound.play(loops=-1)
-        else: 
+        else:
             run_sound.stop()
 
     player.move(player.x_vel, 0)
     player.update()
     handle_horizontal_collision(player, objects, player.x_vel)
-    
+   
     player.move(0, player.y_vel)
     player.update()
     handle_vertical_collision(player, objects, player.y_vel)
@@ -325,12 +325,12 @@ def handle_enemy_physics(enemy, objects):
     enemy.move(enemy.x_vel, 0)
     enemy.update()
     handle_enemy_horizontal_collision(enemy, objects, enemy.x_vel)
-    
+   
     enemy.move(0, enemy.y_vel)
     enemy.update()
     handle_enemy_vertical_collision(enemy, objects, enemy.y_vel)
 
-def draw_player(player): 
+def draw_player(player):
     player.draw(WINDOW)
 
 #END OF MAIN CHARACTER/PLAYER SPRITE AND MOVEMENT--------------------------------------------------------------------------
@@ -345,7 +345,7 @@ class Slime(pygame.sprite.Sprite):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
         self.hitbox = pygame.Rect(x, y, width, height)
-        
+       
         self.x_vel = 0
         self.y_vel = 0
         self.direction = "left"
@@ -360,7 +360,7 @@ class Slime(pygame.sprite.Sprite):
         self.hitbox.width = 60
         self.hitbox.height = 40
         self.hitbox.x = self.rect.centerx - (self.hitbox.width // 2)
-        y_offset = 0 
+        y_offset = 0
         self.hitbox.y = self.rect.bottom - self.hitbox.height + y_offset
 
     def move(self, dx, dy):
@@ -370,7 +370,7 @@ class Slime(pygame.sprite.Sprite):
     def loop(self, fps, player):
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
         self.ai_behavior(player)
-        
+       
         if self.fall_count == 0 and not self.is_attacking:
             self.x_vel = 0
 
@@ -383,7 +383,7 @@ class Slime(pygame.sprite.Sprite):
             dx = self.rect.centerx - player.rect.centerx
             dy = self.rect.centery - player.rect.centery
             distance_to_player = math.hypot(dx, dy) #for circular range detection
-            
+           
             if distance_to_player < self.detection_range:
                 self.move_timer += 1
             else:
@@ -394,9 +394,9 @@ class Slime(pygame.sprite.Sprite):
         if self.move_timer > 2:
                 self.move_timer = 0
                 self.is_attacking = True
-                
-                self.y_vel = -5 
-                
+               
+                self.y_vel = -5
+               
                 direction = 1 if player.rect.x > self.rect.x else -1
                 self.x_vel = direction * 6
                 self.direction = "right" if direction == 1 else "left"
@@ -405,7 +405,7 @@ class Slime(pygame.sprite.Sprite):
         self.fall_count = 0
         self.y_vel = 0
         self.x_vel = 0
-    
+   
     def hit_head(self):
         self.y_vel *= -1
 
@@ -430,13 +430,13 @@ class Slime(pygame.sprite.Sprite):
 
         screen_x = hitbox_screen_pos.centerx - (self.sprite.get_width() // 2)
         screen_y = hitbox_screen_pos.bottom - self.sprite.get_height()
-        
+       
         win.blit(self.sprite, (screen_x, screen_y))
         #ATTACK RANGE SLIME
         """
         circle_center_x = self.rect.centerx + camera.offset_x
         circle_center_y = self.rect.centery + camera.offset_y
-        
+       
         pygame.draw.circle(win, (0, 0, 255), (circle_center_x, circle_center_y), self.detection_range, 1)
         """
 
@@ -454,7 +454,7 @@ def handle_enemy_horizontal_collision(enemy, objects, dx):
             elif dx < 0:
                 enemy.hitbox.left = obj.rect.right
                 enemy.rect.left = enemy.hitbox.left - offset_left
-            
+           
             enemy.x_vel = 0
             break
 
@@ -470,14 +470,14 @@ def handle_enemy_vertical_collision(enemy, objects, dy):
                 enemy.hitbox.bottom = obj.rect.top
                 enemy.landed()
                 collided_objects.append(obj)
-            
+           
             elif dy < 0:
                 offset = enemy.hitbox.top - enemy.rect.top
                 enemy.rect.top = obj.rect.bottom - offset
                 enemy.hitbox.top = obj.rect.bottom
                 enemy.hit_head()
                 collided_objects.append(obj)
-    
+   
     return collided_objects
 
 class Tomato(Slime):
@@ -490,28 +490,28 @@ class Tomato(Slime):
         self.hurt_timer = 0
         self.invincibility_timer = 0
         self.projectiles = []
-        
+       
         self.state = "idle"
         self.state_timer = 0
         self.action_duration = 60
         self.speed = 5
-        
+       
         self.target_player = None
         self.last_action = "idle"
 
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-        
-        self.hitbox.width = 100 
+       
+        self.hitbox.width = 100
         self.hitbox.height = 100
-        
+       
         self.hitbox.x = self.rect.centerx - (self.hitbox.width // 2)
         self.hitbox.y = self.rect.bottom - self.hitbox.height
 
     def loop(self, fps, player):
         for p in self.projectiles:
             p.move()
-            if p.timer > 120: 
+            if p.timer > 120:
                 self.projectiles.remove(p)
 
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
@@ -533,9 +533,9 @@ class Tomato(Slime):
                 if dx > 0: self.direction = "right"
                 else: self.direction = "left"
 
-            if distance < 800: 
+            if distance < 800:
                 self.state_timer += 1
-                
+               
                 if self.state == "idle":
                     self.x_vel = 0
                     if self.state_timer > self.action_duration:
@@ -544,7 +544,7 @@ class Tomato(Slime):
                 elif self.state == "move":
                     if self.direction == "right": self.x_vel = self.speed
                     else: self.x_vel = -self.speed
-                    
+                   
                     if self.state_timer > self.action_duration:
                         self.state = "idle"
                         self.state_timer = 0
@@ -552,7 +552,7 @@ class Tomato(Slime):
 
                 elif self.state == "attack":
                     self.x_vel = 0
-                    pass 
+                    pass
 
             else:
                 self.state = "idle"
@@ -571,12 +571,12 @@ class Tomato(Slime):
                 self.state = "move"
             else:
                 self.state = "attack"
-        
+       
         if self.state == "move":
             self.action_duration = random.randint(15, 90)
             self.last_action = "move"
         elif self.state == "attack":
-            self.animation_count = 0 
+            self.animation_count = 0
             self.last_action = "attack"
 
     def shoot(self):
@@ -585,7 +585,7 @@ class Tomato(Slime):
             if self.health <= 50:
                 bullet_speed = 45
 
-            bullet = Projectile(self.rect.centerx, self.rect.centery, 
+            bullet = Projectile(self.rect.centerx, self.rect.centery,
                             self.target_player.rect.centerx, self.target_player.rect.centery, speed=bullet_speed)
             self.projectiles.append(bullet)
 
@@ -595,12 +595,12 @@ class Tomato(Slime):
         if self.hurt_timer > 0:
             sprite_sheet = "hurt"
             self.hurt_timer -= 1
-            
-        elif self.state == "move": 
+           
+        elif self.state == "move":
             sprite_sheet = "move"
-        elif self.state == "attack": 
+        elif self.state == "attack":
             sprite_sheet = "attack"
-        
+       
         sprite_sheet_name = sprite_sheet + "_" + self.direction
         sprites = self.SPRITES[sprite_sheet_name]
 
@@ -610,19 +610,19 @@ class Tomato(Slime):
         if self.state == "move" or self.state == "idle":
             sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
 
-            
+           
         elif self.state == "attack":
             sprite_index = (self.animation_count // self.ANIMATION_DELAY)
-            
+           
             if sprite_index == len(sprites) - 1 and self.animation_count % self.ANIMATION_DELAY == 0:
                  self.shoot()
-            
+           
             if sprite_index >= len(sprites):
                 self.state = "idle"
                 self.state_timer = 0
                 self.action_duration = random.randint(30, 60)
                 sprite_index = 0
-            
+           
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
 
@@ -640,15 +640,15 @@ class Tomato(Slime):
 
         draw_body = True
         if self.invincibility_timer > 0:
-            if self.invincibility_timer % 10 < 5: 
+            if self.invincibility_timer % 10 < 5:
                 draw_body = False
 
         if draw_body:
             super().draw(win, camera)
-        
+       
         for p in self.projectiles:
             p.draw(win, camera)
-            
+           
         self.rect.x = real_x
         self.rect.y = real_y
 
@@ -659,28 +659,28 @@ class Projectile(pygame.sprite.Sprite):
         self.color = (255, 0, 0)
         self.timer = 0
         self.deflected = False
-        
+       
         dx = target_x - x
         dy = target_y - y
         angle = math.atan2(dy, dx)
-        
+       
         self.x_vel = math.cos(angle) * speed
         self.y_vel = math.sin(angle) * speed
-    
+   
     def deflect(self):
         self.x_vel *= -1.5
         self.y_vel *= -1.5
-        
+       
         self.color = (0, 255, 0)
-        
-        self.timer = 0 
+       
+        self.timer = 0
         self.deflected = True
-        
+       
     def move(self):
         self.rect.x += self.x_vel
         self.rect.y += self.y_vel
         self.timer += 1
-        
+       
     def draw(self, win, camera):
         screen_x = self.rect.x + camera.offset_x
         screen_y = self.rect.y + camera.offset_y
@@ -707,27 +707,27 @@ class Blueberry(Tomato):
             dx = self.target_player.rect.centerx - self.rect.centerx
             dy = self.target_player.rect.centery - self.rect.centery
             base_angle = math.atan2(dy, dx)
-            
-            spread = [-0.3, 0, 0.3] 
-            
+           
+            spread = [-0.3, 0, 0.3]
+           
             for offset in spread:
                 angle = base_angle + offset
-                
-                speed = 15 
+               
+                speed = 15
                 x_vel = math.cos(angle) * speed
                 y_vel = math.sin(angle) * speed
-                
-                bullet = Projectile(self.rect.centerx, self.rect.centery, 
+               
+                bullet = Projectile(self.rect.centerx, self.rect.centery,
                                     self.rect.centerx + x_vel, self.rect.centery + y_vel, speed=speed)
-                
+               
                 bullet.x_vel = x_vel
                 bullet.y_vel = y_vel
                 bullet.color = (0, 0, 255)
-                
+               
                 self.projectiles.append(bullet)
 
 class Cabbage(Tomato):
-    SPRITES = load_sprite_sheets("Enemies", "Cabbage", 150, 150, True) 
+    SPRITES = load_sprite_sheets("Enemies", "Cabbage", 150, 150, True)
 
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
@@ -741,11 +741,11 @@ class Cabbage(Tomato):
 
     def pick_new_state(self):
         self.state_timer = 0
-        
+       
         if random.random() < 0.7:
             self.state = "charge"
             self.action_duration = 30
-            self.x_vel = 0 
+            self.x_vel = 0
         else:
             self.state = "idle"
             self.action_duration = 30
@@ -753,7 +753,7 @@ class Cabbage(Tomato):
     def loop(self, fps, player):
         if self.state == "dash":
             self.y_vel = 0
-            self.fall_count = 0 
+            self.fall_count = 0
         else:
             self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
             self.fall_count += 1
@@ -761,16 +761,16 @@ class Cabbage(Tomato):
         dx = player.rect.centerx - self.rect.centerx
         dy = player.rect.centery - self.rect.centery
         distance = math.hypot(dx, dy)
-        
-        if self.invincibility_timer > 0: 
+       
+        if self.invincibility_timer > 0:
             self.invincibility_timer -= 1
 
-        if self.hurt_timer > 0: 
+        if self.hurt_timer > 0:
             if self.x_vel > 0:
                 self.x_vel -= 1
             elif self.x_vel < 0:
                 self.x_vel += 1
-            
+           
             self.hurt_timer -= 1
 
             if self.hurt_timer == 0:
@@ -778,33 +778,33 @@ class Cabbage(Tomato):
                 self.state_timer = 0
                 self.action_duration = 40
                 self.dash_direction = 0
-            
-        else: 
+           
+        else:
             if distance < 800 or self.state == "dash" or self.state == "charge":
-                
+               
                 self.state_timer += 1
-                
+               
                 if self.state == "idle":
                     self.x_vel = 0
                     if self.state_timer > self.action_duration:
                         self.pick_new_state()
 
                 elif self.state == "charge":
-                    self.x_vel = 0 
-                    
-                    if player.rect.centerx > self.rect.centerx: 
+                    self.x_vel = 0
+                   
+                    if player.rect.centerx > self.rect.centerx:
                         self.direction = "right"
-                    else: 
+                    else:
                         self.direction = "left"
 
                     if self.state_timer > self.action_duration:
                         self.state = "dash"
                         self.state_timer = 0
                         self.action_duration = 20
-                        
-                        if self.direction == "right": 
+                       
+                        if self.direction == "right":
                             self.dash_direction = self.dash_speed
-                        else: 
+                        else:
                             self.dash_direction = -self.dash_speed
 
                         self.rect.y -= 2
@@ -825,10 +825,10 @@ class Cabbage(Tomato):
 
                         self.dash_direction = 0
                         print("Cabbage bonked into a wall!")
-                    
+                   
                     else:
                         self.x_vel = self.dash_direction
-                    
+                   
                     if self.state_timer > self.action_duration:
                         self.state = "idle"
                         self.state_timer = 0
@@ -843,13 +843,13 @@ class Cabbage(Tomato):
 
     def update_sprite(self):
         sprite_sheet = "idle"
-        
+       
         if self.hurt_timer > 0:
             sprite_sheet = "hurt"
 
         elif self.state == "charge":
             sprite_sheet = "charge"
-            
+           
         elif self.state == "dash":
             sprite_sheet = "dash"
 
@@ -858,10 +858,10 @@ class Cabbage(Tomato):
 
         sprite_sheet_name = sprite_sheet + "_" + self.direction
         sprites = self.SPRITES[sprite_sheet_name]
-        
+       
         if sprite_sheet == "hurt":
             sprite_index = 0
-            
+           
         else:
             sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
 
@@ -876,15 +876,15 @@ class Cabbage(Tomato):
             shake_amount = 5
             offset_x = random.randint(-shake_amount, shake_amount)
             offset_y = random.randint(-shake_amount, shake_amount)
-        
+       
         real_x = self.rect.x
         real_y = self.rect.y
-        
+       
         self.rect.x += offset_x
         self.rect.y += offset_y
-        
+       
         super().draw(win, camera)
-        
+       
         self.rect.x = real_x
         self.rect.y = real_y
 
@@ -896,15 +896,15 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, image, x, y, spritesheet, scale = 1):
         pygame.sprite.Sprite.__init__(self)
         original_image = spritesheet.parse_sprite(image)
-        self.image = pygame.transform.scale(original_image, 
-                                           (int(original_image.get_width() * scale), 
+        self.image = pygame.transform.scale(original_image,
+                                           (int(original_image.get_width() * scale),
                                             int(original_image.get_height() * scale)))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
-    
+   
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
-        
+       
 class TileMap():
     def __init__(self, level0, spritesheet, scale = 1):
         self.tile_size = 64 * scale
@@ -916,21 +916,21 @@ class TileMap():
         self.map_surface = pygame.Surface((self.map_w, self.map_h))
         self.map_surface.set_colorkey((0, 0, 0))
         self.load_map()
-        
+       
     def draw_map(self, surface):
         surface.blit(self.map_surface, (0, 0))
      
     def load_map(self):
         for tile in self.tiles:
             tile.draw(self.map_surface)
-    
+   
     def read_csv(self, level0):
         map = []
         with open(os.path.join(level0)) as data:
             data = csv.reader(data, delimiter=',')
             for row in data: map.append(list(row))
             return map
-    
+   
     def load_tiles(self, level0):
         tiles = []
         map = self.read_csv(level0)
@@ -939,7 +939,7 @@ class TileMap():
             x = 0
             for tile in row:
                 if tile == '-1':
-                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
+                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size
                 elif tile == '0':
                     tiles.append(Tile('lava0.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '1':
@@ -966,12 +966,12 @@ class TileMap():
                     tiles.append(Tile('pipeturn2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '10':
                     tiles.append(Tile('pipe2.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
-                
+               
                 x += 1
             y += 1
-        
+       
         self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
-        return tiles 
+        return tiles
 
 class TileMapX(TileMap): #assign tiles for hub map
     def load_tiles(self, level0):
@@ -982,7 +982,7 @@ class TileMapX(TileMap): #assign tiles for hub map
             x = 0
             for tile in row:
                 if tile == '-1':
-                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size 
+                    self.start_x, self.start_y = x * self.tile_size, y * self.tile_size
                 elif tile == '0':
                     tiles.append(Tile('ground.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '1':
@@ -991,12 +991,12 @@ class TileMapX(TileMap): #assign tiles for hub map
                     tiles.append(Tile('level0_blueroot.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
                 elif tile == '3':
                     tiles.append(Tile('level0_greenroot.png', x * self.tile_size, y * self.tile_size, self.spritesheet, self.scale))
-                
+               
                 x += 1
             y += 1
-        
+       
         self.map_w, self.map_h = x * self.tile_size, y * self.tile_size
-        return tiles 
+        return tiles
 #MAP SETTING END ---------------------------------------------------------------------------------------------------
 
 # MAP INDICATOR / MINI MAP ----------------------------------------------------------------------------------------------
@@ -1005,7 +1005,7 @@ class MiniMap():
     def draw_minimap(self, surface, player = None, size = 200, padding = 10):
         if getattr(self, 'map_w', 0) == 0 or getattr(self, 'map_h', 0) == 0:
             return
-    
+   
         mini_w, mini_h = size, size
         mini = pygame.transform.scale(self.map_surface, (mini_w, mini_h))
 
@@ -1013,14 +1013,14 @@ class MiniMap():
         y = HEIGHT - mini_h - padding
 
         pygame.draw.rect(surface, SUBRED, (x - 2, y - 2, mini_w + 4, mini_h + 4))
-        
+       
         surface.blit(mini, (x, y))
 
         if player is not None and self.map_w > 0 and self.map_h > 0:
             lightblue = (173, 216, 230)
             # player position
             px = int ((player.rect.centerx / self.map_w) * mini_w)
-            py = int ((player.rect.centery / self.map_h) * mini_h) 
+            py = int ((player.rect.centery / self.map_h) * mini_h)
             markersize = max(8, min(6, mini_w // 50))
             pygame.draw.rect(surface, lightblue, (x + px - markersize//2, y + py - markersize//2, markersize, markersize))
 
@@ -1079,7 +1079,7 @@ def draw_button(text, x, y, width, height, mouse_pos):
     # drawing border
     pygame.draw.rect(WINDOW, BLACK, button, 3)
 
-    # draw text at the center 
+    # draw text at the center
     button_text = BUTTON_FONT.render(text, 1, WHITE)
     text_x = x + (width - button_text.get_width()) // 2
     text_y = y + (height - button_text.get_height()) // 2
@@ -1113,7 +1113,7 @@ def save_game(player):
     file.close()
     print("Game Saved!")
 
-def load_game(player): 
+def load_game(player):
     file = open('savegame.json', 'r')
     save_data = json.load(file)
     file.close()
@@ -1130,13 +1130,13 @@ class Camera:
         self.offset_x = 0
         self.offset_y = 0
         self.map_width = map_width
-        self.map_height = map_height 
+        self.map_height = map_height
     def get_offset_position(self, entity):
         screen_x = entity.rect.x + self.offset_x
         screen_y = entity.rect.y + self.offset_y
         return pygame.Rect(screen_x, screen_y, entity.rect.width, entity.rect.height)
     def follow_player(self, player):
-        self.offset_x = -player.rect.centerx + WIDTH//2 
+        self.offset_x = -player.rect.centerx + WIDTH//2
         self.offset_y = -player.rect.centery + HEIGHT//2
 
 # bgm and sfx control part ------------------------------------------------------
@@ -1186,17 +1186,17 @@ class DialogueBox:
         self.current_text = ""
         self.full_text = text
         self.character_index = 0
-        self.finished = False 
+        self.finished = False
 
     def update_dialogue(self):
         if self.active and not self.finished:
             if self.character_index < len(self.full_text):
                 self.character_index += self.typing_speed
                 self.current_text = self.full_text[:self.character_index]
-            else: 
+            else:
                 self.finished = True
                 self.current_text = self.full_text
-                
+               
     def skip_dialogue(self):
         if self.active:
             self.current_text = self.full_text
@@ -1214,12 +1214,12 @@ class DialogueBox:
     def draw_dialogue_box(self, surface, width, height):
         if not self.active:
             return
-        
+       
         box_width = DIALOGUE_BOX_WIDTH
         box_height = DIALOGUE_BOX_HEIGHT
         box_x = DIALOGUE_BOX_MARGIN
         box_y = HEIGHT - DIALOGUE_BOX_HEIGHT - DIALOGUE_BOX_MARGIN
-        
+       
         pygame.draw.rect(WINDOW, DIALOGUE_BOX_COLOUR, (box_x, box_y, box_width, box_height))
         pygame.draw.rect(WINDOW, DIALOGUE_BORDER_COLOUR, (box_x, box_y, box_width, box_height), 3 )
 
@@ -1247,74 +1247,74 @@ class Collection:
             "Double Jump": False,
         }
         self.is_open = False
-    
+   
     def collect_item(self, item_name):
         if item_name in self.items:
             if self.items[item_name] == False:  
-                self.items[item_name] = True   
+                self.items[item_name] = True  
                 return True  
             else:
                 return False  
-    
+   
     def has_item(self, item_name):
         return self.items.get(item_name, False)
-    
+   
     def toggle_inventory(self):
         self.is_open = not self.is_open
 
     def draw_inventory_screen(self, surface, width, height):
         if not self.is_open:
             return  
-        
+       
         overlay = pygame.Surface((width, height))
         overlay.fill(BLACK)
-        overlay.set_alpha(200) 
+        overlay.set_alpha(200)
         surface.blit(overlay, (0, 0))
-        
+       
         # Title
         title_font = pygame.font.SysFont("comicsans", 80)
         title = title_font.render("Inventory", True, WHITE)
         surface.blit(title, (width // 2 - title.get_width() // 2, 50))
-        
+       
         # Show each item
         item_font = pygame.font.SysFont("comicsans", 40)
-        y = 200 
-        
+        y = 200
+       
         for item_name, have_it in self.items.items():
             if have_it:
                 color = GREEN
-                symbol = " / " 
+                symbol = " / "
             else:
                 color = GREY
                 symbol = " X "
-            
+           
             text = item_font.render(symbol + item_name, True, color)
             surface.blit(text, (width // 2 - text.get_width() // 2, y))
-            y += 70 
-        
+            y += 70
+       
         close_font = pygame.font.SysFont("comicsans", 30)
         close_text = close_font.render("Press I to close and open inventory~", True, WHITE)
         surface.blit(close_text, (width // 2 - close_text.get_width() // 2, height - 80))
-    
+   
 def draw_inventory_button(mouse_pos):
     button_x = WIDTH - INVENTORY_BUTTON_SIDE - INVENTORY_BUTTON_MARGIN
     button_y = PAUSE_BUTTON_MARGIN + PAUSE_BUTTON_SIDE + INVENTORY_BUTTON_MARGIN
-    
+   
     button = pygame.Rect(button_x, button_y, INVENTORY_BUTTON_SIDE, INVENTORY_BUTTON_SIDE)
-    
+   
     if button.collidepoint(mouse_pos):
         pygame.draw.rect(WINDOW, LIGHT_GREY, button)
     else:
         pygame.draw.rect(WINDOW, WHITE, button)
-    
+   
     pygame.draw.rect(WINDOW, BLACK, button, 3)
-    
+   
     inv_font = pygame.font.SysFont("comicsans", 30)
     inv_text = inv_font.render("INV", True, BLACK)
     text_x = button_x + (INVENTORY_BUTTON_SIDE - inv_text.get_width()) // 2
     text_y = button_y + (INVENTORY_BUTTON_SIDE - inv_text.get_height()) // 2
     WINDOW.blit(inv_text, (text_x, text_y))
-    
+   
     return button
 
 class CollectibleItem(pygame.sprite.Sprite):
@@ -1328,6 +1328,8 @@ class CollectibleItem(pygame.sprite.Sprite):
             image_path = 'assets/icons/blueberry.jpg'
         elif item_name == "Red Bucket":
             image_path = 'assets/icons/tomato.jpg'
+        elif item_name == "Double Jump":
+            image_path = 'assets/icons/doublejump.jpg'
 
         if image_path:
             current_image = pygame.image.load(image_path).convert_alpha() #convert alpha isn't rlly used here, the checkbox transparency for .jpg is a bit funny xD
@@ -1335,7 +1337,7 @@ class CollectibleItem(pygame.sprite.Sprite):
 
         self.image = pygame.transform.scale(self.image, (40, 40))
         self.rect = pygame.Rect(x, y, 40, 40)
-    
+   
     def draw(self, win, camera):
         screen_x = self.rect.x + camera.offset_x
         screen_y = self.rect.y + camera.offset_y
@@ -1360,28 +1362,28 @@ def main():
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
 
-    collectibles = [] 
-    
+    collectibles = [CollectibleItem(3750, 1130, "Double Jump")]
+   
     page = 0
     pause = False
     show_new_game_warning = False
 
-    # for dialogue box 
+    # for dialogue box
     message = ""
     message_timer = 0
     MESSAGE_DURATION = FPS*2
-    
+   
     # load map declares..?
     class SpriteSheet:
         def parse_sprite(self, name):
             path = join("assets", "LevelMap", name)
             return pygame.image.load(path).convert_alpha()
-    
+   
     class SpriteSheetX:
         def parse_sprite(self, name):
             path = join("assets", "LevelX", name)
             return pygame.image.load(path).convert_alpha()
-    
+   
     spritesheet = SpriteSheet()
     spritesheet_x = SpriteSheetX()
     tile_map = TileMap('assets/LevelMap/level0.csv', spritesheet, scale = 1) #also scales up the map here
@@ -1436,7 +1438,7 @@ def main():
     #main bgm
     pygame.mixer.music.load('assets/sounds/background_music.wav')
     pygame.mixer.music.play(-1)
-    #sound effects 
+    #sound effects
     attack_sound = pygame.mixer.Sound('assets/sounds/attack.wav')
     attack_sound.set_volume(0.2)
     jump_sound = pygame.mixer.Sound('assets/sounds/jump.flac')
@@ -1445,14 +1447,14 @@ def main():
     run_sound.set_volume(2)
 
     run = True
-    while run: 
+    while run:
         global WINDOW, MUSIC_ON, SFX_ON
         clock.tick(FPS)
         mouse_pos = pygame.mouse.get_pos()
 
         if message_timer > 0:
             message_timer -= 1
-        if page == 0: #main menu page 
+        if page == 0: #main menu page
             WINDOW.fill(GREY)
             title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
@@ -1479,24 +1481,28 @@ def main():
                 YES_BUTTON = draw_button("Yes! Start a new game.", BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
                 NO_BUTTON = draw_button("No!", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
-        elif page == 1: #new game page 
+        elif page == 1: #new game page
             if pause == False:
                 WINDOW.fill(SUBRED)
                 WINDOW.blit(bg_map, (camera.offset_x, camera.offset_y)) #loads background
-                
+               
                 player.loop(FPS)
                 handle_move(player, tile_map.tiles, run_sound, SFX_ON)
 
                 dialogue_box.update_dialogue()
 
-                
+               
                 for item in collectibles[:]:
                     if player.hitbox.colliderect(item.rect):
                         was_collected = player.collection.collect_item(item.item_name)
-                        
+                       
                         if was_collected:
                             collectibles.remove(item)
                             print(f"Collected: {item.item_name}!")
+
+                            if item.item_name == "Double Jump":
+                                player.max_jumps = 2
+                                print("🎉 DOUBLE JUMP UNLOCKED HAHA! Press W twice!")
 
 
 
@@ -1512,23 +1518,23 @@ def main():
                         if isinstance(enemy, Cabbage):
                             item_name = "Green Bucket"
                             print("GREEN CARRIER DEFEATED!")
-                            
+                           
                         elif isinstance(enemy, Blueberry):
                             item_name = "Blue Bucket"
                             print("BLUE CARRIER DEFEATED!")
-                            
+                           
                         elif isinstance(enemy, Tomato):
                             item_name = "Red Bucket"
                             print("RED CARRIER DEFEATED!")
-                        
+                       
                         if item_name:
                             new_item = CollectibleItem(enemy.rect.centerx - 20, enemy.rect.centery, item_name)
                             collectibles.append(new_item)
                             print("The boss dropped an item!")
-                        
+                       
                         enemies.remove(enemy)
                         continue
-                            
+                           
 
                     if hasattr(enemy, 'projectiles'):
                         for p in enemy.projectiles[:]:
@@ -1549,10 +1555,10 @@ def main():
                                         player.knockback_timer = 10
                                         if player.rect.centerx < p.rect.centerx: player.knockback_vel = -15
                                         else: player.knockback_vel = 15
-                                        
+                                       
                                         enemy.projectiles.remove(p)
                                         print(f"Ouch! Projectile was super painful! {player.health}HP/100HP")
-                                        
+                                       
                                         if player.health <= 0:
                                             page = 4
                             #DEFLECTED PROJECTILE
@@ -1592,7 +1598,7 @@ def main():
                                     pass
                                 else:
                                     if enemy not in player.hit_enemies:
-                                        player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
+                                        player.hit_enemies.append(enemy) #PREVENT MULTIHIT
                                         enemy.health -= 1
                                         if isinstance(enemy, Tomato):
                                             enemy.hurt_timer = 6
@@ -1601,13 +1607,13 @@ def main():
                                             enemy.x_vel = 5
                                         else:
                                             enemy.x_vel = -5
-                                
+                               
                             if hasattr(enemy, 'projectiles'):
                                 for p in enemy.projectiles :
                                     if attack_box.colliderect(p.rect) and not p.deflected:
                                         p.deflect()
                                         print("DEFLECTED!")
-                    
+                   
                     elif player.hitbox.colliderect(enemy.hitbox):
                         if player.health > 0 and player.knockback_timer == 0:
                             player_initial_health = player.health
@@ -1621,7 +1627,7 @@ def main():
                             player.knockback_timer = 10
 
                             print(f"OUCH! You initially had {player_initial_health}, now you have {player.health}!")
-                            
+                           
                             #check if player dies
                             if player.health <= 0:
                                 page = 4
@@ -1631,7 +1637,7 @@ def main():
                 for tile in tile_map.tiles:
                     tile_screen_position = camera.get_offset_position(tile)
                     WINDOW.blit(tile.image, tile_screen_position)
-                
+               
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
                 #START OF CHECK PLAYER HITBOX HERE#======================================================================
@@ -1661,12 +1667,12 @@ def main():
                         distance_x = player.rect.x - enemy.rect.x
                         distance_y = player.rect.y - enemy.rect.y
                         distance = math.hypot(distance_x, distance_y)
-                        
+                       
                         if distance < 600:
                                 draw_tomatoboss_health_bar(enemy)
-                
+               
                 for item in collectibles:
-                    item.update() 
+                    item.update()
                     item.draw(WINDOW, camera)
 
                 # draw minimap in bottom-right
@@ -1676,11 +1682,11 @@ def main():
                 draw_health_bar(BAR_MARGIN, BAR_MARGIN, player.health, player.max_health)
                 dialogue_box.draw_dialogue_box(WINDOW, WIDTH, HEIGHT)
                 player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
-                INVENTORY_BUTTON = draw_inventory_button(mouse_pos) 
+                INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
 
             elif pause == True:
                 WINDOW.fill(WHITE)
-                
+               
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
 
@@ -1701,7 +1707,7 @@ def main():
                 MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
 
-        elif page == 3: #settings page 
+        elif page == 3: #settings page
             WINDOW.fill(GREY)
             settings_title = TITLE_FONT.render("Settings", 1, BLACK)
             WINDOW.blit(settings_title, ((WIDTH//2 - settings_title.get_width()//2, TITLE_Y)))
@@ -1712,14 +1718,14 @@ def main():
             SFX_BUTTON = draw_button(sfx_text, BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
 
-        elif page == 4: # game over page 
+        elif page == 4: # game over page
             WINDOW.fill(DARK_GREY)
             game_over_text = TITLE_FONT.render("HAHA! GAME OVER!", 1, RED)
             WINDOW.blit(game_over_text, ((WIDTH//2 - game_over_text.get_width()//2, TITLE_Y)))
 
             # RESTART_BUTTON = draw_button("Restart Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos) (i dw put first i wait for the checkpoint code)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-        
+       
         elif page == 5: #cutscene page
             if cut is None:
                 valid_paths = [p for p in cutscene_paths if os.path.exists(p)]
@@ -1741,19 +1747,19 @@ def main():
             if pause == False:
                 WINDOW.fill(NOTBLACK)
                 WINDOW.blit(bg_map_x, (camera_x.offset_x, camera_x.offset_y))
-                
+               
                 player.loop(FPS)
                 handle_move(player, tile_map_x.tiles, run_sound, SFX_ON)
-                
+               
                 camera_x.follow_player(player)
-                
+               
                 for tile in tile_map_x.tiles:
                     tile_screen_position = camera_x.get_offset_position(tile)
                     WINDOW.blit(tile.image, tile_screen_position)
-                
+               
                 player_screen_position = camera_x.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
-                
+               
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
 
@@ -1761,10 +1767,10 @@ def main():
                     info_font = pygame.font.SysFont("comicsans", 30)
                     info_text = info_font.render("Press F to interact.", 1, WHITE)
                     WINDOW.blit(info_text, (WIDTH//2 - info_text.get_width()//2, HEIGHT - 150))
-            
+           
             elif pause == True:
                 WINDOW.fill(WHITE)
-                
+               
                 player_screen_position = camera_x.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
 
@@ -1783,7 +1789,7 @@ def main():
                 sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
                 SFX_BUTTON = draw_button(sfx_text, BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
                 MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
-    
+   
         if message_timer > 0:
             draw_message(message)
 
@@ -1815,7 +1821,7 @@ def main():
                                 Blueberry(3950, 1130, 150, 150),
                                 Cabbage(1940, 1570, 150, 150)
                             ]
-                            collectibles = []
+                            collectibles = [CollectibleItem(3750, 1130, "Double Jump")]
 
                             show_new_game_warning = False
                             page = 5
@@ -1828,11 +1834,11 @@ def main():
                             pause = False
                             if if_save_exists():
                                 show_new_game_warning = True
-                            else: 
+                            else:
                                     player.rect.x = 980  #Player spawn point (ori is 980, 220 | tomato chamber test: 2253, 4500)
                                     player.rect.y = 220
                                     player.update()
-                                    player.health = player.max_health 
+                                    player.health = player.max_health
 
                                     #enemy & bucket spawnfix
                                     enemies = [
@@ -1846,7 +1852,7 @@ def main():
                                         Blueberry(3950, 1130, 150, 150),
                                         Cabbage(1940, 1570, 150, 150)
                                     ]
-                                    collectibles = []
+                                    collectibles = [CollectibleItem(3750, 1130, "Double Jump")]
 
                                     page = 5
                                     pause = False
@@ -1856,7 +1862,7 @@ def main():
                                 load_game(player)
                                 page = 1
                                 pause = False
-                            else: 
+                            else:
                                 message = "No saved game found!"
                                 message_timer = MESSAGE_DURATION
                         if SETTINGS_BUTTON.collidepoint(mouse_pos):
@@ -1913,7 +1919,7 @@ def main():
                             jump_sound.play()
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
-                        show_new_game_warning = False   
+                        show_new_game_warning = False  
                     elif page == 1 or page == 6:
                         pause = not pause
                     elif page == 3:
@@ -1939,13 +1945,13 @@ def main():
                     if dialogue_box.active:
                         if dialogue_box.finished:
                             dialogue_box.close_dialogue()
-                        else: 
+                        else:
                             dialogue_box.skip_dialogue()
-                    else: 
+                    else:
                         player.melee()
 
 
-    pygame.quit() 
+    pygame.quit()
 
 
 
