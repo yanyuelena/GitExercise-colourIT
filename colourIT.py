@@ -1321,10 +1321,19 @@ class CollectibleItem(pygame.sprite.Sprite):
     def __init__(self, x, y, item_name):
         super().__init__()
         self.item_name = item_name
-        
-        self.image = pygame.image.load('assets/icons/tomato.jpg').convert_alpha()
+
+        if item_name == "Green Bucket":
+            image_path = 'assets/icons/cabbage.jpg'
+        elif item_name == "Blue Bucket":
+            image_path = 'assets/icons/blueberry.jpg'
+        elif item_name == "Red Bucket":
+            image_path = 'assets/icons/tomato.jpg'
+
+        if image_path:
+            current_image = pygame.image.load(image_path).convert_alpha() #convert alpha isn't rlly used here, the checkbox transparency for .jpg is a bit funny xD
+            self.image = current_image
+
         self.image = pygame.transform.scale(self.image, (40, 40))
-        
         self.rect = pygame.Rect(x, y, 40, 40)
     
     def draw(self, win, camera):
@@ -1496,11 +1505,30 @@ def main():
                     handle_enemy_physics(enemy, tile_map.tiles)
                     #print player coordinates
                     #print(f"Player: {player.rect.x}, {player.rect.y}")
-
+                    #ENEMY DEATH LOGIC
                     if enemy.health <= 0:
+                        item_name = None
+
                         if isinstance(enemy, Cabbage):
-                            enemies.remove(enemy)
-                            continue
+                            item_name = "Green Bucket"
+                            print("GREEN CARRIER DEFEATED!")
+                            
+                        elif isinstance(enemy, Blueberry):
+                            item_name = "Blue Bucket"
+                            print("BLUE CARRIER DEFEATED!")
+                            
+                        elif isinstance(enemy, Tomato):
+                            item_name = "Red Bucket"
+                            print("RED CARRIER DEFEATED!")
+                        
+                        if item_name:
+                            new_item = CollectibleItem(enemy.rect.centerx - 20, enemy.rect.centery, item_name)
+                            collectibles.append(new_item)
+                            print("The boss dropped an item!")
+                        
+                        enemies.remove(enemy)
+                        continue
+                            
 
                     if hasattr(enemy, 'projectiles'):
                         for p in enemy.projectiles[:]:
@@ -1541,14 +1569,7 @@ def main():
                                             enemy.hurt_timer = 10
                                             enemy.invincibility_timer = 80
                                         print("Boss hit by own shard!")
-                                        
-                                        if enemy.health <= 0:
-                                            if isinstance(enemy, Tomato):
-                                                new_item = CollectibleItem(enemy.rect.centerx - 20,  enemy.rect.centery, "Red Bucket")
-                                                collectibles.append(new_item)
-                                                print("The boss dropped an item!")
-                                                enemies.remove(enemy)
-                                                print("RED CARRIER DEFEATED!")
+
 
                     if player.melee_attack:
                         MELEE_DMG_START = 0
@@ -1580,14 +1601,6 @@ def main():
                                             enemy.x_vel = 5
                                         else:
                                             enemy.x_vel = -5
-
-                                        if enemy.health <= 0:
-                                            if enemy.health <= 0:
-                                                if isinstance(enemy, Tomato):
-                                                    new_item = CollectibleItem(enemy.rect.centerx - 20, enemy.rect.centery, "Red Bucket")
-                                                    collectibles.append(new_item)
-                                                    print("Boss dropped item!")
-                                                enemies.remove(enemy)
                                 
                             if hasattr(enemy, 'projectiles'):
                                 for p in enemy.projectiles :
