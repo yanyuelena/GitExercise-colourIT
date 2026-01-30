@@ -1328,6 +1328,8 @@ class CollectibleItem(pygame.sprite.Sprite):
             image_path = 'assets/icons/blueberry.jpg'
         elif item_name == "Red Bucket":
             image_path = 'assets/icons/tomato.jpg'
+        elif item_name == "Double Jump":
+            image_path = 'assets/icons/doublejump.png'
 
         if image_path:
             current_image = pygame.image.load(image_path).convert_alpha() #convert alpha isn't rlly used here, the checkbox transparency for .jpg is a bit funny xD
@@ -1360,7 +1362,7 @@ def main():
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
 
-    collectibles = [] 
+    collectibles = [CollectibleItem(2000, 1000, "Double Jump")] 
     
     page = 0
     pause = False
@@ -1497,6 +1499,10 @@ def main():
                         if was_collected:
                             collectibles.remove(item)
                             print(f"Collected: {item.item_name}!")
+
+                            if item.item_name == "Double Jump":
+                                player.max_jumps = 2
+                                print("🎉 DOUBLE JUMP UNLOCKED HAHA! Press W twice!")
 
 
 
@@ -1815,7 +1821,7 @@ def main():
                                 Blueberry(3950, 1130, 150, 150),
                                 Cabbage(1940, 1570, 150, 150)
                             ]
-                            collectibles = []
+                            collectibles = [CollectibleItem(2000, 1000, "Double Jump")]
 
                             show_new_game_warning = False
                             page = 5
