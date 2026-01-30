@@ -1720,7 +1720,7 @@ def main():
             # RESTART_BUTTON = draw_button("Restart Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos) (i dw put first i wait for the checkpoint code)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
-        elif page == 5: #cutscene page
+        elif page == 5: #cutscene 1 page
             if cut is None:
                 valid_paths = [p for p in cutscene_paths if os.path.exists(p)]
                 if not valid_paths:
@@ -1761,7 +1761,7 @@ def main():
                     info_font = pygame.font.SysFont("comicsans", 30)
                     info_text = info_font.render("Press F to interact.", 1, WHITE)
                     WINDOW.blit(info_text, (WIDTH//2 - info_text.get_width()//2, HEIGHT - 150))
-            
+
             elif pause == True:
                 WINDOW.fill(WHITE)
                 
@@ -1902,7 +1902,6 @@ def main():
                 if (page == 1 or page == 6) and not pause:
                     if event.key == pygame.K_SPACE:
                         player.melee()
-                        print(f"Player: {player.rect.x}, {player.rect.y}")
                         if SFX_ON:
                             attack_sound.play()
                     if event.key == pygame.K_i:  
