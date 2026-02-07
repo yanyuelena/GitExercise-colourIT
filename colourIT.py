@@ -132,8 +132,8 @@ class Player(pygame.sprite.Sprite):
         self.update()
 
         #player health
-        self.health = 10000
-        self.max_health = 10000
+        self.health = 100
+        self.max_health = 100
         #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
@@ -1112,10 +1112,33 @@ def draw_pause_button(mouse_pos):
     return button
 
 # json saving part -----------------------------------------------------------
-def save_game(player):
+def save_game(player, enemies, collectibles, current_page):
+#START OF ENEMY AND COLLECTIBLE SAVE AFTER RESTART FIX
+    saved_enemies = []
+    for enemy in enemies:
+        saved_enemies.append({
+            "type": type(enemy).__name__,
+            "x": enemy.rect.x,
+            "y": enemy.rect.y
+        })
+
+    saved_collectibles = []
+    for item in collectibles:
+        saved_collectibles.append({
+            "name": item.item_name,
+            "x": item.rect.x,
+            "y": item.rect.y
+        })
+#END OF ENEMY AND COLLECTIBLE SAVE AFTER RESTART FIX
+
     save_data = {
         "player_x": player.rect.x,
         "player_y": player.rect.y,
+        "player_health": player.health,
+        "inventory": player.collection.items,
+        "enemies": saved_enemies,
+        "collectibles": saved_collectibles,
+        "current_page": current_page
     }
     file = open('savegame.json', 'w')
     json.dump(save_data, file)
@@ -1128,7 +1151,48 @@ def load_game(player):
     file.close()
     player.rect.x = save_data["player_x"]
     player.rect.y = save_data["player_y"]
+    player.health = save_data["player_health"]
+
+    loaded_page = save_data["current_page"]
+
+#START OF ENEMY AND COLLECTIBLE LOAD AFTER RESTART FIX
+    if "inventory" in save_data:
+        player.collection.items = save_data["inventory"]
+
+    loaded_enemies = []
+    if "enemies" in save_data:
+        for enemy_data in save_data["enemies"]:
+            if enemy_data["type"] == "Slime":
+                loaded_enemies.append(Slime(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Tomato":
+                loaded_enemies.append(Tomato(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Blueberry":
+                loaded_enemies.append(Blueberry(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Cabbage":
+                loaded_enemies.append(Cabbage(enemy_data["x"], enemy_data["y"], 150, 150))
+    else:
+        loaded_enemies = [
+            Slime(1950, 1070, 150, 150),
+            Slime(4830, 3630, 150, 150),
+            Slime(4850, 1520, 150, 150),
+            Slime(5050, 1520, 150, 150),
+            Slime(1340, 2280, 150, 150),
+            Slime(2950, 2480, 150, 150),
+            Tomato(2853, 4500, 150, 150),
+            Blueberry(3950, 1130, 150, 150),
+            Cabbage(1940, 1570, 150, 150)
+        ]
+
+    loaded_collectibles = []
+    if "collectibles" in save_data:
+        for collectible_data in save_data["collectibles"]:
+            loaded_collectibles.append(CollectibleItem(collectible_data["x"], collectible_data["y"], collectible_data["name"]))
+    else:
+        loaded_collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+#END OF ENEMY AND COLLECTIBLE LOAD AFTER RESTART FIX
     print("Game Loaded!")
+    return loaded_enemies, loaded_collectibles, loaded_page
+
 
 def if_save_exists():
     return os.path.exists('savegame.json')
@@ -1800,6 +1864,7 @@ def main():
 
             PAUSE_BUTTON = draw_pause_button(mouse_pos)
             INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
+            player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
             
             if pause == True:
                 WINDOW.fill(WHITE)
@@ -1876,6 +1941,7 @@ def main():
                 
                 PAUSE_BUTTON = draw_pause_button(mouse_pos)
                 INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
+                player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
 
             if pause == True:
                 WINDOW.fill(WHITE)
@@ -1953,7 +2019,10 @@ def main():
                                 Blueberry(3950, 1130, 150, 150),
                                 Cabbage(1940, 1570, 150, 150)
                             ]
+
+                            player.collection = Collection()
                             collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+                            player.max_jumps = 1
 
                             show_new_game_warning = False
                             page = 5
@@ -1973,6 +2042,7 @@ def main():
                                     player.health = player.max_health 
 
                                     #enemy & bucket spawnfix
+
                                     enemies = [
                                         Slime(1950, 1070, 150, 150),
                                         Slime(4830, 3630, 150, 150),
@@ -1984,15 +2054,22 @@ def main():
                                         Blueberry(3950, 1130, 150, 150),
                                         Cabbage(1940, 1570, 150, 150)
                                     ]
+
+                                    player.collection = Collection()
                                     collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+                                    player.max_jumps = 1
 
                                     page = 5
                                     pause = False
                                     dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
                         if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                             if if_save_exists():
-                                load_game(player)
-                                page = 1
+                                enemies, collectibles, page = load_game(player)
+                                if player.collection.has_item("Double Jump"):
+                                    player.max_jumps = 2
+                                else:
+                                    player.max_jumps = 1
+                                    
                                 pause = False
                             else: 
                                 message = "No saved game found!"
@@ -2014,7 +2091,7 @@ def main():
                         if MENU_BUTTON.collidepoint(mouse_pos):
                             page = 0
                         if SAVE_BUTTON.collidepoint(mouse_pos):
-                            save_game(player)
+                            save_game(player, enemies, collectibles, page)
                             message = "Game Saved!"
                             message_timer = MESSAGE_DURATION
                         if BGM_BUTTON.collidepoint(mouse_pos):
