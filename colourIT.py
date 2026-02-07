@@ -2027,7 +2027,7 @@ def main():
                             show_new_game_warning = False
                             page = 5
                             pause = False
-                            dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
+                            dialogue_box.start_dialogue("Key functions: Press", "SPACEBAR to attack", "I to open inventory", "ESC to pause")
                         if NO_BUTTON.collidepoint(mouse_pos):
                             show_new_game_warning = False
                     else:
@@ -2061,7 +2061,7 @@ def main():
 
                                     page = 5
                                     pause = False
-                                    dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
+                                    dialogue_box.start_dialogue("Key functions: Press", "SPACEBAR to attack or deflect enemy's shard, I to open inventory, ESC to pause")
                         if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                             if if_save_exists():
                                 enemies, collectibles, page = load_game(player)
