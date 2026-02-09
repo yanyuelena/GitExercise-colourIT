@@ -15,6 +15,9 @@ background = pygame.image.load('assets/LevelMap/background.png').convert()
 # background image for hub
 hub_background = pygame.image.load('assets/LevelX/backgroundx.png').convert()
 
+# background image for final hub
+final_hub_background = pygame.image.load('assets/LevelX/backgroundx_red.png').convert()
+
 FPS = 30
 
 MUSIC_ON = True
@@ -129,8 +132,8 @@ class Player(pygame.sprite.Sprite):
         self.update()
 
         #player health
-        self.health = 10000
-        self.max_health = 10000
+        self.health = 100
+        self.max_health = 100
         #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
@@ -1026,7 +1029,7 @@ class MiniMap():
 
 # MINI MAP END --------------------------------------------------------------------------------------------------------------
 
-# CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
+# PRELUDE CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
 
 class Pre_Cutscene:
     def __init__(self, image_paths, durations):
@@ -1065,7 +1068,13 @@ class Pre_Cutscene:
             img_scaled = pygame.transform.scale(img, (WIDTH, HEIGHT))
             screen.blit(img_scaled, (0, 0))
 
-# CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
+# PRELUDE CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
+
+# FINAL CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
+
+
+
+# FINAL CUTSCENE SETUP -----------------------------------------------------------------------------------------------------------
 
 def draw_button(text, x, y, width, height, mouse_pos):
 
@@ -1103,10 +1112,33 @@ def draw_pause_button(mouse_pos):
     return button
 
 # json saving part -----------------------------------------------------------
-def save_game(player):
+def save_game(player, enemies, collectibles, current_page):
+#START OF ENEMY AND COLLECTIBLE SAVE AFTER RESTART FIX
+    saved_enemies = []
+    for enemy in enemies:
+        saved_enemies.append({
+            "type": type(enemy).__name__,
+            "x": enemy.rect.x,
+            "y": enemy.rect.y
+        })
+
+    saved_collectibles = []
+    for item in collectibles:
+        saved_collectibles.append({
+            "name": item.item_name,
+            "x": item.rect.x,
+            "y": item.rect.y
+        })
+#END OF ENEMY AND COLLECTIBLE SAVE AFTER RESTART FIX
+
     save_data = {
         "player_x": player.rect.x,
         "player_y": player.rect.y,
+        "player_health": player.health,
+        "inventory": player.collection.items,
+        "enemies": saved_enemies,
+        "collectibles": saved_collectibles,
+        "current_page": current_page
     }
     file = open('savegame.json', 'w')
     json.dump(save_data, file)
@@ -1119,7 +1151,48 @@ def load_game(player):
     file.close()
     player.rect.x = save_data["player_x"]
     player.rect.y = save_data["player_y"]
+    player.health = save_data["player_health"]
+
+    loaded_page = save_data["current_page"]
+
+#START OF ENEMY AND COLLECTIBLE LOAD AFTER RESTART FIX
+    if "inventory" in save_data:
+        player.collection.items = save_data["inventory"]
+
+    loaded_enemies = []
+    if "enemies" in save_data:
+        for enemy_data in save_data["enemies"]:
+            if enemy_data["type"] == "Slime":
+                loaded_enemies.append(Slime(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Tomato":
+                loaded_enemies.append(Tomato(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Blueberry":
+                loaded_enemies.append(Blueberry(enemy_data["x"], enemy_data["y"], 150, 150))
+            elif enemy_data["type"] == "Cabbage":
+                loaded_enemies.append(Cabbage(enemy_data["x"], enemy_data["y"], 150, 150))
+    else:
+        loaded_enemies = [
+            Slime(1950, 1070, 150, 150),
+            Slime(4830, 3630, 150, 150),
+            Slime(4850, 1520, 150, 150),
+            Slime(5050, 1520, 150, 150),
+            Slime(1340, 2280, 150, 150),
+            Slime(2950, 2480, 150, 150),
+            Tomato(2853, 4500, 150, 150),
+            Blueberry(3950, 1130, 150, 150),
+            Cabbage(1940, 1570, 150, 150)
+        ]
+
+    loaded_collectibles = []
+    if "collectibles" in save_data:
+        for collectible_data in save_data["collectibles"]:
+            loaded_collectibles.append(CollectibleItem(collectible_data["x"], collectible_data["y"], collectible_data["name"]))
+    else:
+        loaded_collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+#END OF ENEMY AND COLLECTIBLE LOAD AFTER RESTART FIX
     print("Game Loaded!")
+    return loaded_enemies, loaded_collectibles, loaded_page
+
 
 def if_save_exists():
     return os.path.exists('savegame.json')
@@ -1329,7 +1402,7 @@ class CollectibleItem(pygame.sprite.Sprite):
         elif item_name == "Red Bucket":
             image_path = 'assets/icons/tomato.jpg'
         elif item_name == "Double Jump":
-            image_path = 'assets/icons/doublejump.png'
+            image_path = 'assets/icons/doublejump.jpg'
 
         if image_path:
             current_image = pygame.image.load(image_path).convert_alpha() #convert alpha isn't rlly used here, the checkbox transparency for .jpg is a bit funny xD
@@ -1362,7 +1435,7 @@ def main():
     pygame.display.set_caption("Colour IT!")
     clock = pygame.time.Clock()
 
-    collectibles = [CollectibleItem(2000, 1000, "Double Jump")] 
+    collectibles = [CollectibleItem(3950, 1130,"Double Jump")] 
     
     page = 0
     pause = False
@@ -1398,6 +1471,7 @@ def main():
     # scale background
     bg_map = pygame.transform.scale(background, (tile_map.map_w, tile_map.map_h))
     bg_map_x = pygame.transform.scale(hub_background, (tile_map_x.map_w, tile_map_x.map_h))
+    bg_map_xred = pygame.transform.scale(final_hub_background, (tile_map_x.map_w, tile_map_x.map_h))
 
     # cutscene paths -------------------------------------------------
     cutscene1_skip = False
@@ -1416,6 +1490,25 @@ def main():
         cutscene_durations = default_durations
     else:
         cutscene_durations = [5] * len(cutscene_paths)
+
+    # final cutscene paths ---------------------------------------------
+    final_cutscene_skip = False
+
+    final_cutscene_dir = os.path.join('assets', 'FinalCutscene')
+    try:
+        final_cutscene_files = sorted([f for f in listdir(final_cutscene_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+    except Exception:
+        final_cutscene_files = []
+
+    final_cutscene_paths = [os.path.join(final_cutscene_dir, f) for f in final_cutscene_files]
+    final_cut = None
+
+    defin_durations = [55, 55, 55, 55, 55, 55, 50]
+    if len(defin_durations) == len(final_cutscene_paths):
+        final_cutscene_durations = defin_durations 
+    else:
+        final_cutscene_durations = [5] * len(final_cutscene_paths)
+
     # -----------------------------------------------------------------
     """ #removed to fix spawn
     enemies = [
@@ -1599,7 +1692,7 @@ def main():
                                 else:
                                     if enemy not in player.hit_enemies:
                                         player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
-                                        enemy.health -= 1
+                                        enemy.health -= 200 #attack damage
                                         if isinstance(enemy, Tomato):
                                             enemy.hurt_timer = 6
                                             enemy.invincibility_timer = 50
@@ -1684,6 +1777,10 @@ def main():
                 player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
                 INVENTORY_BUTTON = draw_inventory_button(mouse_pos) 
 
+                # navigate to final cutscene
+                if player.collection.has_item("Red Bucket") and player.collection.has_item("Blue Bucket") and player.collection.has_item("Green Bucket"):
+                    page = 7
+
             elif pause == True:
                 WINDOW.fill(WHITE)
                 
@@ -1726,7 +1823,7 @@ def main():
             # RESTART_BUTTON = draw_button("Restart Game", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos) (i dw put first i wait for the checkpoint code)
             MENU_BUTTON = draw_button("Main Menu", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
         
-        elif page == 5: #cutscene page
+        elif page == 5: #cutscene 1 page
             if cut is None:
                 valid_paths = [p for p in cutscene_paths if os.path.exists(p)]
                 if not valid_paths:
@@ -1760,14 +1857,115 @@ def main():
                 player_screen_position = camera_x.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
                 
-                PAUSE_BUTTON = draw_pause_button(mouse_pos)
-                INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
-
                 if player.hitbox.colliderect(RedCollision_zone):
                     info_font = pygame.font.SysFont("comicsans", 30)
                     info_text = info_font.render("Press F to interact.", 1, WHITE)
                     WINDOW.blit(info_text, (WIDTH//2 - info_text.get_width()//2, HEIGHT - 150))
+
+            PAUSE_BUTTON = draw_pause_button(mouse_pos)
+            INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
+            player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
             
+            if pause == True:
+                WINDOW.fill(WHITE)
+                player_screen_position = camera_x.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                overlay.set_alpha(128)
+                WINDOW.blit(overlay, (0, 0))
+
+                pause_text = TITLE_FONT.render("Paused!", 1, BLACK)
+                WINDOW.blit(pause_text, ((WIDTH//2 - pause_text.get_width()//2, TITLE_Y)))
+
+                RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+                BGM_BUTTON = draw_button(bgm_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
+                SFX_BUTTON = draw_button(sfx_text, BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            
+        elif page == 7: #final cutscene page
+            if final_cut is None:
+                valid_paths = [p for p in final_cutscene_paths if os.path.exists(p)]
+                if not valid_paths:
+                    print ("Cutscene ended: no valid images found.")
+                    page = 8
+                    try:
+                        player.rect.x = 980
+                        player.rect.y = 220
+                        player.x_vel = 0
+                        player.y_vel = 0
+                        player.update()
+                        player.landed()
+                    except NameError:
+                        pass
+                else:
+                    final_cut = Pre_Cutscene(valid_paths, final_cutscene_durations)
+
+            if final_cut is not None:
+                final_cut.update()
+                final_cut.draw(WINDOW)
+                if final_cut.finished:
+                    final_cut = None
+                    print ("Cutscene finished: no valid images found.")
+                    page = 8
+                    try:
+                        player.rect.x = 980
+                        player.rect.y = 220
+                        player.x_vel = 0
+                        player.y_vel = 0
+                        player.update()
+                        player.landed()
+                    except NameError:
+                        pass
+
+        elif page == 8: #final page
+            if pause == False:
+                WINDOW.fill(NOTBLACK)
+                WINDOW.blit(bg_map_xred, (camera_x.offset_x, camera_x.offset_y))
+                
+                player.loop(FPS)
+                handle_move(player, tile_map_x.tiles, run_sound, SFX_ON)
+                
+                camera_x.follow_player(player)
+                
+                for tile in tile_map_x.tiles:
+                    tile_screen_position = camera_x.get_offset_position(tile)
+                    WINDOW.blit(tile.image, tile_screen_position)
+                
+                player_screen_position = camera_x.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+                
+                PAUSE_BUTTON = draw_pause_button(mouse_pos)
+                INVENTORY_BUTTON = draw_inventory_button(mouse_pos)
+                player.collection.draw_inventory_screen(WINDOW, WIDTH, HEIGHT)
+
+            if pause == True:
+                WINDOW.fill(WHITE)
+                player_screen_position = camera_x.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                overlay.set_alpha(128)
+                WINDOW.blit(overlay, (0, 0))
+
+                pause_text = TITLE_FONT.render("Paused!", 1, BLACK)
+                WINDOW.blit(pause_text, ((WIDTH//2 - pause_text.get_width()//2, TITLE_Y)))
+
+                RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                SAVE_BUTTON = draw_button("Save Game", BUTTON_X, SECOND_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                bgm_text = "BGM ON" if MUSIC_ON else "BGM OFF"
+                BGM_BUTTON = draw_button(bgm_text, BUTTON_X, THIRD_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                sfx_text = "Sound Effects ON" if SFX_ON else "Sound Effects OFF"
+                SFX_BUTTON = draw_button(sfx_text, BUTTON_X, FOURTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+                MENU_BUTTON = draw_button("Main Menu", BUTTON_X, FIFTH_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
+            
+
+
             elif pause == True:
                 WINDOW.fill(WHITE)
                 
@@ -1821,12 +2019,15 @@ def main():
                                 Blueberry(3950, 1130, 150, 150),
                                 Cabbage(1940, 1570, 150, 150)
                             ]
-                            collectibles = [CollectibleItem(2000, 1000, "Double Jump")]
+
+                            player.collection = Collection()
+                            collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+                            player.max_jumps = 1
 
                             show_new_game_warning = False
                             page = 5
                             pause = False
-                            dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
+                            dialogue_box.start_dialogue("Key functions: Press", "SPACEBAR to attack", "I to open inventory", "ESC to pause")
                         if NO_BUTTON.collidepoint(mouse_pos):
                             show_new_game_warning = False
                     else:
@@ -1841,6 +2042,7 @@ def main():
                                     player.health = player.max_health 
 
                                     #enemy & bucket spawnfix
+
                                     enemies = [
                                         Slime(1950, 1070, 150, 150),
                                         Slime(4830, 3630, 150, 150),
@@ -1852,15 +2054,22 @@ def main():
                                         Blueberry(3950, 1130, 150, 150),
                                         Cabbage(1940, 1570, 150, 150)
                                     ]
-                                    collectibles = []
+
+                                    player.collection = Collection()
+                                    collectibles = [CollectibleItem(3950, 1130, "Double Jump")]
+                                    player.max_jumps = 1
 
                                     page = 5
                                     pause = False
-                                    dialogue_box.start_dialogue("You", "I need to bring back colour to the world!")
+                                    dialogue_box.start_dialogue("Key functions: Press", "SPACEBAR to attack or deflect enemy's shard, I to open inventory, ESC to pause")
                         if LOAD_GAME_BUTTON.collidepoint(mouse_pos):
                             if if_save_exists():
-                                load_game(player)
-                                page = 1
+                                enemies, collectibles, page = load_game(player)
+                                if player.collection.has_item("Double Jump"):
+                                    player.max_jumps = 2
+                                else:
+                                    player.max_jumps = 1
+                                    
                                 pause = False
                             else: 
                                 message = "No saved game found!"
@@ -1870,7 +2079,7 @@ def main():
                         if QUIT_BUTTON.collidepoint(mouse_pos):
                             run = False
 
-                elif page == 1 or page == 6:
+                elif page == 1 or page == 6 or page == 8:
                     if pause == False:
                         if PAUSE_BUTTON.collidepoint(mouse_pos):
                             pause = True
@@ -1882,7 +2091,7 @@ def main():
                         if MENU_BUTTON.collidepoint(mouse_pos):
                             page = 0
                         if SAVE_BUTTON.collidepoint(mouse_pos):
-                            save_game(player)
+                            save_game(player, enemies, collectibles, page)
                             message = "Game Saved!"
                             message_timer = MESSAGE_DURATION
                         if BGM_BUTTON.collidepoint(mouse_pos):
@@ -1905,10 +2114,9 @@ def main():
 
 
             if event.type == pygame.KEYDOWN:
-                if (page == 1 or page == 6) and not pause:
+                if (page == 1 or page == 6 or page == 8) and not pause:
                     if event.key == pygame.K_SPACE:
                         player.melee()
-                        print(f"Player: {player.rect.x}, {player.rect.y}")
                         if SFX_ON:
                             attack_sound.play()
                     if event.key == pygame.K_i:  
@@ -1920,7 +2128,7 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     if page == 0 and show_new_game_warning:
                         show_new_game_warning = False   
-                    elif page == 1 or page == 6:
+                    elif page == 1 or page == 6 or page == 8:
                         pause = not pause
                     elif page == 3:
                         page = 0
@@ -1931,6 +2139,20 @@ def main():
                         print("Cutscene skipped by pressing Esc.")
                         page = 6
                         cut = None
+                    elif page == 7: # skip final cutsncece
+                        final_cutscene_skip = True
+                        print("Final Cutscene skipped by pressing Esc.")
+                        page = 8
+                        try:
+                            player.rect.x = 980
+                            player.rect.y = 220
+                            player.x_vel = 0
+                            player.y_vel = 0
+                            player.update()
+                            player.landed()
+                        except NameError:
+                            pass
+                        final_cut = None
                 if event.key == pygame.K_F11:
                     WINDOW = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 if event.key == pygame.K_f:
