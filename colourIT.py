@@ -132,8 +132,8 @@ class Player(pygame.sprite.Sprite):
         self.update()
 
         #player health
-        self.health = 100
-        self.max_health = 100
+        self.health = 10000
+        self.max_health = 10000
         #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
@@ -891,6 +891,7 @@ class Cabbage(Tomato):
         self.rect.x = real_x
         self.rect.y = real_y
 
+
 #END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
 
 
@@ -1083,13 +1084,13 @@ def draw_button(text, x, y, width, height, mouse_pos):
     if button.collidepoint(mouse_pos):
         pygame.draw.rect(WINDOW, GREY, button)
     else:
-        pygame.draw.rect(WINDOW, BLACK, button)
+        pygame.draw.rect(WINDOW, WHITE, button)
 
     # drawing border
-    pygame.draw.rect(WINDOW, BLACK, button, 3)
+    pygame.draw.rect(WINDOW, WHITE, button, 3)
 
     # draw text at the center 
-    button_text = BUTTON_FONT.render(text, 1, WHITE)
+    button_text = BUTTON_FONT.render(text, 1, BLACK)
     text_x = x + (width - button_text.get_width()) // 2
     text_y = y + (height - button_text.get_height()) // 2
     WINDOW.blit(button_text, (text_x, text_y))
@@ -1229,7 +1230,7 @@ def toggle_sfx():
 def draw_message(message):
     if message:
         message_font = pygame.font.SysFont("comicsans", 30)
-        message_text = message_font.render(message, 1, BLACK)
+        message_text = message_font.render(message, 1, WHITE)
 
         message_x = WIDTH//2 - message_text.get_width()//2
         message_y = HEIGHT - 100
@@ -1548,8 +1549,8 @@ def main():
         if message_timer > 0:
             message_timer -= 1
         if page == 0: #main menu page 
-            WINDOW.fill(GREY)
-            title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
+            WINDOW.fill(BLACK)
+            title_text = TITLE_FONT.render("Colour IT!", 1, WHITE)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
             NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, FIRST_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
@@ -1692,7 +1693,7 @@ def main():
                                 else:
                                     if enemy not in player.hit_enemies:
                                         player.hit_enemies.append(enemy) #PREVENT MULTIHIT 
-                                        enemy.health -= 200 #attack damage
+                                        enemy.health -= 10 #attack damage
                                         if isinstance(enemy, Tomato):
                                             enemy.hurt_timer = 6
                                             enemy.invincibility_timer = 50
@@ -1782,7 +1783,7 @@ def main():
                     page = 7
 
             elif pause == True:
-                WINDOW.fill(WHITE)
+                WINDOW.fill(BLACK)
                 
                 player_screen_position = camera.get_offset_position(player)
                 WINDOW.blit(player.sprite, player_screen_position)
