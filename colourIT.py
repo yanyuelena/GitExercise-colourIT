@@ -130,10 +130,11 @@ class Player(pygame.sprite.Sprite):
         self.sprite = self.SPRITES["idle_left"][0]
         self.update()
 
-        # player health
-        self.health = 100
-        self.max_health = 100
-        # KNOCKBACK FOR TAKING DAMAGE
+
+        #player health
+        self.health = 10000
+        self.max_health = 10000
+        #KNOCKBACK FOR TAKING DAMAGE
         self.knockback_timer = 0
         self.knockback_vel = 0
         # for collection system
@@ -882,6 +883,11 @@ class Cabbage(Tomato):
         self.rect.y = real_y
 
 # MAP SETTING -------------------------------------------------------------------------------------------------------
+
+#END OF OTHER ENTITIES SPRITE AND MOVEMENT--------------------------------------------------------------------------
+
+
+#MAP SETTING -------------------------------------------------------------------------------------------------------
 class Tile(pygame.sprite.Sprite):
     def __init__(self, image, x, y, spritesheet, scale = 1):
         pygame.sprite.Sprite.__init__(self)
@@ -1055,7 +1061,7 @@ def draw_button(text, x, y, width, height, mouse_pos):
     if button.collidepoint(mouse_pos):
         pygame.draw.rect(WINDOW, GREY, button)
     else:
-        pygame.draw.rect(WINDOW, BLACK, button)
+        pygame.draw.rect(WINDOW, WHITE, button)
 
     pygame.draw.rect(WINDOW, BLACK, button, 3)
 
@@ -1475,10 +1481,9 @@ def main():
 
         if message_timer > 0:
             message_timer -= 1
-       
-        if page == 0:
-            WINDOW.fill(GREY)
-            title_text = TITLE_FONT.render("Colour IT!", 1, BLACK)
+        if page == 0: #main menu page 
+            WINDOW.fill(BLACK)
+            title_text = TITLE_FONT.render("Colour IT!", 1, WHITE)
             WINDOW.blit(title_text, ((WIDTH//2 - title_text.get_width()//2, TITLE_Y)))
 
             NEW_GAME_BUTTON = draw_button("New Game", BUTTON_X, FIRST_BUTTON_Y+BUTTON_SPACING*2, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
@@ -1603,10 +1608,15 @@ def main():
                 if all(player.collection.has_item(b) for b in ["Red Bucket", "Blue Bucket", "Green Bucket"]):
                     page = 7
 
-            else:
-                WINDOW.fill(WHITE)
-                WINDOW.blit(player.sprite, camera.get_offset_position(player))
-                overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.fill(GREY); overlay.set_alpha(128)
+            elif pause == True:
+                WINDOW.fill(BLACK)
+                
+                player_screen_position = camera.get_offset_position(player)
+                WINDOW.blit(player.sprite, player_screen_position)
+
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.fill(GREY)
+                overlay.set_alpha(128)
                 WINDOW.blit(overlay, (0, 0))
                 WINDOW.blit(TITLE_FONT.render("Paused!", 1, BLACK), (WIDTH//2 - 150, TITLE_Y))
                 RESUME_BUTTON = draw_button("Resume", BUTTON_X, FIRST_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_pos)
